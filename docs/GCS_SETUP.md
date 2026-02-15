@@ -46,7 +46,7 @@ pip install google-cloud-storage
 ## 4. Verify connection
 
 ```bash
-python test/test_gcs.py
+python tests/test_gcs.py
 ```
 
 Or use the script:

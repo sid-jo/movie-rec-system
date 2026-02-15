@@ -9,7 +9,7 @@ import joblib
 import numpy as np
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODELS_DIR = os.path.join(PROJECT_ROOT, "models")
+MODELS_DIR = os.path.join(PROJECT_ROOT, "models", "artifacts")
 METADATA_DIR = os.path.join(PROJECT_ROOT, "metadata")
 
 # Lazy-loaded globals
@@ -54,6 +54,7 @@ def _extract_movies_from_description(text, title_to_id):
 def get_recommendations(user_id, user_data=None, force_popularity=False):
     """
     Return up to 20 movie IDs (list) for the user.
+    Assignment: "up to 20 movie IDs" — fewer than 20 is fine when format is correct.
     user_data: optional dict from user API (for cold start).
     force_popularity: if True, skip NMF/cold-start and use only popularity (for benchmarking).
     """
@@ -114,7 +115,7 @@ def get_recommendations(user_id, user_data=None, force_popularity=False):
         if valid:
             return valid[:20]
 
-    # 4. Last resort: fixed fallback from valid catalog
+    # 4. Last resort: fixed fallback from valid catalog (up to 20)
     fallback = [
         "the+shawshank+redemption+1994",
         "the+godfather+1972",

@@ -11,7 +11,7 @@ from src.recommender import get_recommendations
 app = Flask(__name__)
 
 API_BASE = "http://128.2.220.241:8080"
-USER_TIMEOUT = 0.3  # Stay under 600ms total
+USER_TIMEOUT = 0.2  # Stay under 600ms total
 
 
 @app.route("/")

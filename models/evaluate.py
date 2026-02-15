@@ -26,13 +26,13 @@ def load_models():
     """Load the trained models from disk."""
     print("Loading trained models...")
     
-    with open('saved/cf_model.pkl', 'rb') as f:
+    with open('artifacts/cf_model.pkl', 'rb') as f:
         cf_model = pickle.load(f)
     
-    with open('saved/cb_model.pkl', 'rb') as f:
+    with open('artifacts/cb_model.pkl', 'rb') as f:
         cb_model = pickle.load(f)
     
-    with open('saved/training_metadata.json', 'r') as f:
+    with open('artifacts/training_metadata.json', 'r') as f:
         training_metadata = json.load(f)
     
     print("✓ Models loaded")
@@ -294,7 +294,7 @@ def main():
     
     cf_results = {
         'model_name': 'Collaborative Filtering (User-User Similarity)',
-        'model_file': 'saved/cf_model.pkl'
+        'model_file': 'artifacts/cf_model.pkl'
     }
     
     # Metric 1: Accuracy (retrain on train set only)
@@ -318,7 +318,7 @@ def main():
     
     # Metric 4: Model Size
     cf_results['model_size_mb'] = evaluate_model_size(
-        'saved/cf_model.pkl', 'Collaborative Filtering'
+        'artifacts/cf_model.pkl', 'Collaborative Filtering'
     )
     
     # ========== EVALUATE CONTENT-BASED ==========
@@ -328,7 +328,7 @@ def main():
     
     cb_results = {
         'model_name': 'Content-Based (Genre Matching)',
-        'model_file': 'saved/cb_model.pkl'
+        'model_file': 'artifacts/cb_model.pkl'
     }
     
     # Metric 1: Accuracy (retrain on train set only)
@@ -352,7 +352,7 @@ def main():
     
     # Metric 4: Model Size
     cb_results['model_size_mb'] = evaluate_model_size(
-        'saved/cb_model.pkl', 'Content-Based'
+        'artifacts/cb_model.pkl', 'Content-Based'
     )
     
     # ========== SAVE RESULTS ==========
@@ -363,7 +363,7 @@ def main():
         'test_data_size': len(ratings_df)
     }
     
-    with open('saved/evaluation_results.json', 'w') as f:
+    with open('artifacts/evaluation_results.json', 'w') as f:
         json.dump(results, f, indent=2)
     
     # ========== PRINT COMPARISON TABLE ==========
@@ -397,7 +397,7 @@ def main():
         print("  Reasons:")
         print(f"  - Better accuracy (NDCG@20: {cf_results['accuracy_ndcg20']:.4f})")
     
-    print("\n✓ Results saved to: models/saved/evaluation_results.json")
+    print("\n✓ Results saved to: models/artifacts/evaluation_results.json")
     print("="*70)
 
 

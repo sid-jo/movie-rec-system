@@ -78,13 +78,13 @@ def main():
     # ========== STEP 5: Save Models ==========
     print("\n[5/5] Saving trained models...")
     
-    # Create saved models directory
-    os.makedirs('saved', exist_ok=True)
+    # Create artifacts directory
+    os.makedirs('artifacts', exist_ok=True)
     
     # Save models
-    cf_model.save('saved/cf_model.pkl')
-    cb_model.save('saved/cb_model.pkl')
-    cold_start.save('saved/cold_start.pkl')
+    cf_model.save('artifacts/cf_model.pkl')
+    cb_model.save('artifacts/cb_model.pkl')
+    cold_start.save('artifacts/cold_start.pkl')
     
     # Save training metadata
     metadata = {
@@ -109,10 +109,10 @@ def main():
         }
     }
     
-    with open('saved/training_metadata.json', 'w') as f:
+    with open('artifacts/training_metadata.json', 'w') as f:
         json.dump(metadata, f, indent=2)
     
-    print(f"\n  ✓ All models saved to models/saved/")
+    print(f"\n  ✓ All models saved to models/artifacts/")
     
     # ========== Summary ==========
     print("\n" + "="*70)
@@ -122,13 +122,13 @@ def main():
     print(f"✓ Content-Based trained in {cb_training_time:.2f}s")
     print(f"✓ Cold-Start handler ready")
     print(f"\nModels saved to:")
-    print(f"  - models/saved/cf_model.pkl")
-    print(f"  - models/saved/cb_model.pkl")
-    print(f"  - models/saved/cold_start.pkl")
-    print(f"  - models/saved/training_metadata.json")
+    print(f"  - models/artifacts/cf_model.pkl")
+    print(f"  - models/artifacts/cb_model.pkl")
+    print(f"  - models/artifacts/cold_start.pkl")
+    print(f"  - models/artifacts/training_metadata.json")
     print("="*70)
     print("\nNext step: Run evaluation script")
-    print("  python evaluate_models.py")
+    print("  python evaluate.py")
     print("="*70)
 
 

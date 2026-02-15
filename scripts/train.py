@@ -21,7 +21,7 @@ import joblib
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(PROJECT_ROOT, "data", "processed")
 METADATA_DIR = os.path.join(PROJECT_ROOT, "metadata")
-MODELS_DIR = os.path.join(PROJECT_ROOT, "models")
+MODELS_DIR = os.path.join(PROJECT_ROOT, "models", "artifacts")
 os.makedirs(MODELS_DIR, exist_ok=True)
 
 
