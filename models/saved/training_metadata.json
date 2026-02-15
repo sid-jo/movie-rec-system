@@ -1,0 +1,21 @@
+{
+  "trained_at": "2026-02-14T20:00:51.402677",
+  "training_times": {
+    "collaborative_filtering_sec": 18.82,
+    "content_based_sec": 13.79
+  },
+  "data_stats": {
+    "num_ratings": 210038,
+    "num_watches": 300482,
+    "num_users": 20067,
+    "num_movies": 10676,
+    "ratings_per_user_avg": 10.47,
+    "watches_per_user_avg": 14.76
+  },
+  "model_configs": {
+    "cf": {
+      "min_common_items": 5,
+      "top_similar_users": 50
+    }
+  }
+}
