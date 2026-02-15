@@ -27,11 +27,11 @@
 | 🌐 Deployment | Deploy recommendation service on team VM, port 8082, reachable by course | | |
 | 🌐 Deployment | Keep service running for 24h window (before/after M1 submission); use process manager if needed | | |
 | 🌐 Deployment | Verify firewall: port 8082 open; test `curl http://<VM>:8082/recommend/<userid>` | | |
-| 📝 M1 Report | Create Report Templates (.md and Doc) | | |
+| 📝 M1 Report | Create Report Templates (.md and Doc) | Barath/Bruce | 🟢 Done |
 | 📝 M1 Report | Fill Learning section (data, techniques, cold start, link to training code) | | |
 | 📝 M1 Report | Fill Model comparison (four metrics in 3-step format, table, production choice, link to eval code) | | |
 | 📝 M1 Report | Fill Prediction service section (how ranking is derived, links to training and serving code) | | |
-| 📝 M1 Report | Ensure meeting notes link shows who / what / when for M1 | | |
+| 📝 M1 Report | Ensure meeting notes link shows who / what / when for M1 | Barath/Bruce | 🟢 Done |
 | ✅ Admin | Push final code; ensure `m1_report.md` (or .pdf) in repo root | | |
 | ✅ Admin | Submit latest commit URL on Canvas | | |
 | ✅ Admin | Schedule debrief with team mentor within one week after submission | | |
