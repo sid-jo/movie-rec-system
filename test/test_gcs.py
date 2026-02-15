@@ -1,18 +1,27 @@
+"""Test GCS connection to mlip-team2-movielog bucket."""
+import os
+
 from google.cloud import storage
 
-# Initialize client
-client = storage.Client()
+PROJECT_ID = "mlip-spring2026"
+BUCKET_NAME = "mlip-team2-movielog"
 
-# List buckets to test connection
+if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+    print("WARNING: GOOGLE_APPLICATION_CREDENTIALS not set. Using gcloud ADC if available.")
+
+client = storage.Client(project=PROJECT_ID)
+bucket = client.bucket(BUCKET_NAME)
+
 print("Testing GCS connection...")
-buckets = list(client.list_buckets())
-print(f"Found {len(buckets)} bucket(s):")
-for bucket in buckets:
-    print(f"  - {bucket.name}")
+try:
+    buckets = list(client.list_buckets())
+    print(f"Found {len(buckets)} bucket(s):")
+    for b in buckets:
+        print(f"  - {b.name}")
+except Exception as e:
+    print(f"(Skipping list_buckets - {e})")
+    print("Attempting direct bucket access...")
 
-# Test upload
-bucket_name = "mlip-team2-movielog-ryanw3"  # Change to your bucket name
-bucket = client.bucket(bucket_name)
 blob = bucket.blob("test/hello.txt")
 blob.upload_from_string("Hello from Team 2!")
-print(f"\n✓ Successfully uploaded test file to gs://{bucket_name}/test/hello.txt")
+print(f"\n✓ Successfully uploaded test file to gs://{BUCKET_NAME}/test/hello.txt")

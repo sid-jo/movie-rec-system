@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 """
 Data preparation script - works entirely with local files
-Processes Kafka logs into clean training data
+Processes Kafka logs into clean training data.
+Run from project root: python notebooks/data_prep.py
 """
 import json
 import pandas as pd
 from collections import defaultdict
 import glob
 import os
+
+# Ensure we run from project root (parent of notebooks/)
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+_project_root = os.path.dirname(_script_dir)
+os.chdir(_project_root)
 
 print("="*60)
 print("DATA PREPARATION - WORKING LOCALLY")
