@@ -2,24 +2,24 @@
   "collaborative_filtering": {
     "model_name": "Collaborative Filtering (User-User Similarity)",
     "model_file": "saved/cf_model.pkl",
-    "accuracy_ndcg20": 0.0,
+    "accuracy_ndcg20": 0.05675383321546711,
     "training_time_sec": 18.82,
     "inference_cost": {
-      "avg_ms": 6.05,
-      "p95_ms": 6.76,
-      "p99_ms": 7.61
+      "avg_ms": 23.05,
+      "p95_ms": 30.9,
+      "p99_ms": 38.21
     },
     "model_size_mb": 4307.14
   },
   "content_based": {
     "model_name": "Content-Based (Genre Matching)",
     "model_file": "saved/cb_model.pkl",
-    "accuracy_ndcg20": 0.04504262321479834,
+    "accuracy_ndcg20": 0.013727732402066728,
     "training_time_sec": 13.79,
     "inference_cost": {
-      "avg_ms": 23.0,
-      "p95_ms": 25.49,
-      "p99_ms": 26.32
+      "avg_ms": 85.1,
+      "p95_ms": 106.13,
+      "p99_ms": 117.12
     },
     "model_size_mb": 3.97
   },

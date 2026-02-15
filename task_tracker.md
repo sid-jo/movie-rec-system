@@ -16,7 +16,7 @@
 | 📥 Data / Kafka | Run metadata fetch so `metadata/users.json` and `metadata/movies.json` are up to date | | |
 | 📊 Data / Prep | Run data prep (`notebooks/data_prep.py` or equivalent) to produce `data/processed/ratings.csv` and `watches.csv` | | |
 | 🤖 Models / Training | Run `models/train_models.py` and confirm `models/saved/cf_model.pkl`, `cb_model.pkl`, `cold_start.pkl` exist | | |
-| 📈 Models / Evaluation | Run model comparison (accuracy, training cost, inference cost, model size) and record results | | |
+| 📈 Models / Evaluation | Run model comparison (accuracy, training cost, inference cost, model size) and record results | Sid | 🟢 Done |
 | 📈 Models / Evaluation | Add/run evaluation code and document metrics (3-step: metric, data, operationalization) | | |
 | 🔧 API / Format | Change API response to single line: up to 20 comma-separated movie IDs only (no titles, no userid) | | |
 | 🚀 API / Serving | Load saved models (CF, content-based, cold-start) at app startup in `src/app.py` | | |

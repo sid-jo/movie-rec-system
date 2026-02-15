@@ -70,50 +70,93 @@ def calculate_ndcg_at_k(relevant_items, recommended_items, k=20):
     return dcg / idcg
 
 
-def evaluate_accuracy(model, model_name, ratings_df, test_users_sample=200):
+def create_train_test_split(ratings_df, test_ratio=0.2):
+    """
+    Create train/test split for each user chronologically.
+    
+    Args:
+        ratings_df: Full ratings DataFrame
+        test_ratio: Proportion of ratings to hold out for testing
+        
+    Returns:
+        train_df, test_df, test_user_holdouts (dict mapping user_id -> set of held-out movie_ids)
+    """
+    train_data = []
+    test_data = []
+    test_user_holdouts = {}
+    
+    for user_id in ratings_df['user_id'].unique():
+        user_ratings = ratings_df[ratings_df['user_id'] == user_id].copy()
+        
+        # Sort by timestamp (chronological order)
+        user_ratings = user_ratings.sort_values('timestamp')
+        
+        # Split: last 20% for test, first 80% for train
+        n_ratings = len(user_ratings)
+        n_test = max(1, int(n_ratings * test_ratio))  # At least 1 rating in test
+        
+        train_ratings = user_ratings.iloc[:-n_test]
+        test_ratings = user_ratings.iloc[-n_test:]
+        
+        train_data.append(train_ratings)
+        test_data.append(test_ratings)
+        
+        # Track which movies are held out for this user
+        test_user_holdouts[str(user_id)] = set(test_ratings['movie_id'].tolist())
+    
+    train_df = pd.concat(train_data, ignore_index=True)
+    test_df = pd.concat(test_data, ignore_index=True)
+    
+    return train_df, test_df, test_user_holdouts
+
+
+def evaluate_accuracy(model, model_name, test_df, test_user_holdouts, test_users_sample=200):
     """
     Metric 1: Prediction Accuracy using NDCG@20
     
     Metric: NDCG@20 (Normalized Discounted Cumulative Gain at rank 20)
-    Data: Test set - for each user, hide their most recent 20% of ratings
+    Data: Test set - held-out ratings not seen during training
     Operationalization: 
-        - For each test user, get their highly-rated movies (4-5 stars) as "relevant"
-        - Generate top 20 recommendations
-        - Calculate NDCG@20 based on how many relevant items appear in top 20
+        - For each test user, get their highly-rated movies in test set as "relevant"
+        - Generate top 20 recommendations (model trained on train set only)
+        - Calculate NDCG@20 based on how many relevant test items appear in top 20
         - Average NDCG across all test users
     """
     print(f"\n[1/4] Evaluating Accuracy for {model_name}...")
     print("  Metric: NDCG@20 (Normalized Discounted Cumulative Gain)")
+    print("  Using held-out test set (chronological split)")
     
-    # Get users with enough ratings to do test split
-    user_rating_counts = ratings_df.groupby('user_id').size()
-    users_with_enough_data = user_rating_counts[user_rating_counts >= 10].index.tolist()
+    # Get users with enough ratings in test set
+    user_test_counts = test_df.groupby('user_id').size()
+    users_with_test_data = user_test_counts[user_test_counts >= 2].index.tolist()
     
     # Sample test users
     test_users = random.sample(
-        users_with_enough_data, 
-        min(test_users_sample, len(users_with_enough_data))
+        users_with_test_data, 
+        min(test_users_sample, len(users_with_test_data))
     )
     
-    print(f"  Testing on {len(test_users)} users with 10+ ratings")
+    print(f"  Testing on {len(test_users)} users with test data")
     
     ndcg_scores = []
     successful_predictions = 0
     empty_predictions = 0
+    no_relevant_items = 0
     
     for user_id in test_users:
-        user_ratings = ratings_df[ratings_df['user_id'] == user_id].copy()
+        # Get test set ratings for this user
+        user_test_ratings = test_df[test_df['user_id'] == user_id].copy()
         
-        # Get movies user rated highly (7-10 stars on 1-10 scale) as relevant items
+        # Get movies user rated highly (7-10 stars on 1-10 scale) in TEST SET as relevant items
         relevant_items = set(
-            user_ratings[user_ratings['rating'] >= 7.0]['movie_id'].tolist()
+            user_test_ratings[user_test_ratings['rating'] >= 7.0]['movie_id'].tolist()
         )
         
         if len(relevant_items) == 0:
-            continue  # Skip users with no high ratings
+            no_relevant_items += 1
+            continue  # Skip users with no high ratings in test set
         
-        # Get recommendations from model
-        # Convert user_id to string to match model's expected format
+        # Get recommendations from model (trained on train set only)
         try:
             recommendations = model.predict(str(user_id), top_k=20)
             
@@ -133,10 +176,13 @@ def evaluate_accuracy(model, model_name, ratings_df, test_users_sample=200):
         print(f"  ✓ Successful predictions: {successful_predictions}/{len(test_users)}")
         if empty_predictions > 0:
             print(f"  ⚠ Empty predictions: {empty_predictions}/{len(test_users)}")
+        if no_relevant_items > 0:
+            print(f"  ⚠ Users with no high-rated test items: {no_relevant_items}/{len(test_users)}")
         return avg_ndcg
     else:
         print(f"  ✗ No successful predictions")
         print(f"  ⚠ Empty predictions: {empty_predictions}/{len(test_users)}")
+        print(f"  ⚠ Users with no high-rated test items: {no_relevant_items}/{len(test_users)}")
         return 0.0
 
 
@@ -219,15 +265,26 @@ def main():
     print("MODEL EVALUATION - COMPARING TWO APPROACHES")
     print("="*70)
     
-    # Load models and training metadata
-    cf_model, cb_model, training_metadata = load_models()
+    # Load production models and training metadata (for inference/size metrics)
+    cf_model_prod, cb_model_prod, training_metadata = load_models()
     
-    # Load ratings data for testing
-    print("\nLoading test data...")
+    # Load all data
+    print("\nLoading data...")
     ratings_df = pd.read_csv('../data/processed/ratings.csv')
+    watches_df = pd.read_csv('../data/processed/watches.csv')
+    with open('../metadata/movies.json', 'r') as f:
+        movies_metadata = json.load(f)
     print(f"✓ Loaded {len(ratings_df):,} ratings")
+    print(f"✓ Loaded {len(watches_df):,} watch records")
+    print(f"✓ Loaded {len(movies_metadata):,} movies")
     
-    # Get list of users for testing
+    # Create train/test split for accuracy evaluation
+    print("\nCreating train/test split (80/20 chronological)...")
+    train_df, test_df, test_user_holdouts = create_train_test_split(ratings_df)
+    print(f"✓ Train set: {len(train_df):,} ratings")
+    print(f"✓ Test set: {len(test_df):,} ratings")
+    
+    # Get list of users for inference testing
     all_users = ratings_df['user_id'].unique().tolist()
     
     # ========== EVALUATE COLLABORATIVE FILTERING ==========
@@ -240,9 +297,12 @@ def main():
         'model_file': 'saved/cf_model.pkl'
     }
     
-    # Metric 1: Accuracy
+    # Metric 1: Accuracy (retrain on train set only)
+    print("\nRetraining CF model on training set for accuracy evaluation...")
+    cf_model_eval = CollaborativeFilteringModel()
+    cf_model_eval.fit(train_df)
     cf_results['accuracy_ndcg20'] = evaluate_accuracy(
-        cf_model, 'Collaborative Filtering', ratings_df
+        cf_model_eval, 'Collaborative Filtering', test_df, test_user_holdouts
     )
     
     # Metric 2: Training Cost (already measured during training)
@@ -251,9 +311,9 @@ def main():
     print(f"  Metric: Wall-clock time in seconds")
     print(f"  ✓ Training time: {cf_results['training_time_sec']} seconds")
     
-    # Metric 3: Inference Cost
+    # Metric 3: Inference Cost (use production model for consistent performance)
     cf_results['inference_cost'] = evaluate_inference_cost(
-        cf_model, 'Collaborative Filtering', all_users
+        cf_model_prod, 'Collaborative Filtering', all_users
     )
     
     # Metric 4: Model Size
@@ -271,9 +331,12 @@ def main():
         'model_file': 'saved/cb_model.pkl'
     }
     
-    # Metric 1: Accuracy
+    # Metric 1: Accuracy (retrain on train set only)
+    print("\nRetraining CB model on training set for accuracy evaluation...")
+    cb_model_eval = ContentBasedModel()
+    cb_model_eval.fit(train_df, movies_metadata, watches_df)
     cb_results['accuracy_ndcg20'] = evaluate_accuracy(
-        cb_model, 'Content-Based', ratings_df
+        cb_model_eval, 'Content-Based', test_df, test_user_holdouts
     )
     
     # Metric 2: Training Cost
@@ -282,9 +345,9 @@ def main():
     print(f"  Metric: Wall-clock time in seconds")
     print(f"  ✓ Training time: {cb_results['training_time_sec']} seconds")
     
-    # Metric 3: Inference Cost
+    # Metric 3: Inference Cost (use production model for consistent performance)
     cb_results['inference_cost'] = evaluate_inference_cost(
-        cb_model, 'Content-Based', all_users
+        cb_model_prod, 'Content-Based', all_users
     )
     
     # Metric 4: Model Size
