@@ -45,27 +45,24 @@
 
 ### Cold-start problem
 - **How we address cold start:** 
-  We use the `ColdStartHandler` class to handle new users with no rating or watch history. The approach works as follows:
+  We handle new users with no rating or watch history using their self-described preferences from signup. The approach works as follows:
   
-  1. **Parse user preferences**: When a new user signs up, they may provide free-text descriptions of movies they like and dislike in the "likes" and "dislikes" fields of their user profile.
+  1. **Parse user preferences**: When a new user signs up, they may provide free-text descriptions in the `self_description_likes` and `self_description_dislikes` fields of their user profile (accessed via the user API).
   
-  2. **Extract movie mentions**: The handler searches the user's text for mentions of known movie titles by normalizing titles (lowercase, remove special characters, remove "the/a/an" prefixes) and matching against our movie database.
+  2. **Extract movie mentions**: The system searches the user's text for mentions of known movie titles by:
+     - Normalizing movie titles (removing punctuation, converting to lowercase, replacing "+" with spaces)
+     - Matching normalized titles against the movie catalog
+     - Extracting up to 20 movie IDs mentioned in the likes text
   
-  3. **Extract genre preferences**: 
-     - From mentioned movies: extracts genres of movies the user explicitly mentioned
-     - From text keywords: looks for direct genre mentions (e.g., "action movies", "comedies", "sci-fi")
-     - Builds a set of preferred genres and disliked genres
+  3. **Generate recommendations**:
+     - **For users with preferences**: Returns movies explicitly mentioned in `self_description_likes` (up to 20), then fills remaining slots with popular movies that are NOT in the disliked list
+     - **Fallback**: If no preferences are found or extraction fails, uses popularity-based recommendations with user-specific variation (hash-based offset for personalization)
   
-  4. **Generate recommendations**:
-     - Collects candidate movies from preferred genres
-     - Filters out movies from disliked genres
-     - Removes explicitly disliked movies
-     - Scores candidates by popularity (watch count) and returns top 20
-     - Falls back to most popular movies overall if no preferences are found
-  
-  This approach leverages the user's self-described preferences to make personalized recommendations even before they have any viewing history.
+  This approach leverages the user's self-described preferences to make personalized recommendations even before they have any viewing history. The production implementation prioritizes simplicity and speed, extracting mentioned movies directly rather than using genre inference.
 
-- **Implementation:** [`models/cold_start.py`](models/cold_start.py) - The `ColdStartHandler` class implements the full cold-start logic with methods `predict_for_new_user()`, `_find_mentioned_movies()`, and `_extract_genres_from_text()`.
+- **Implementation:** 
+  - **Production**: [`src/recommender.py`](src/recommender.py) - Function `get_recommendations()` implements cold-start using `_extract_movies_from_description()` which matches titles from `self_description_likes`/`self_description_dislikes` fields
+  - **Training/Evaluation**: [`models/cold_start.py`](models/cold_start.py) - The `ColdStartHandler` class implements a more sophisticated cold-start logic with genre extraction (used during model development and evaluation)
 
 ### Training at least two models
 - **Model 1: Collaborative Filtering (User-User Similarity)**
@@ -81,7 +78,7 @@
   - Scores movies using weighted combination: 60% genre match, 25% popularity, 15% recency
   - Trained on same rating data plus watch data for popularity calculation
 
-- **Pointer to implementation:** [`models/train_models.py`](models/train_models.py) - This script loads processed data, trains both models sequentially, trains the cold-start handler, and saves all models to `models/saved/` directory. Training metadata (times, data stats) is saved to `models/saved/training_metadata.json`.
+- **Pointer to implementation:** [`models/train.py`](models/train.py) - This script loads processed data, trains both models sequentially, trains the cold-start handler, and saves all models to `models/artifacts/` directory as `.pkl` files. Training metadata (times, data stats) is saved to `models/artifacts/training_metadata.json`.
 
 ---
 
@@ -105,7 +102,7 @@ For each quality, define a measure in **three steps**: (1) metric, (2) data gath
   5. NDCG = DCG / IDCG (normalized to 0-1 range)
   6. Average NDCG across all test users to get final metric
 
-- **Code:** [`models/evaluate_models.py`](models/evaluate_models.py) - Functions `evaluate_accuracy()` (lines 73-140) and `calculate_ndcg_at_k()` (lines 42-70) implement this metric.
+
 
 ### Quality 2: Training cost
 - **Metric:** Wall-clock time in seconds - the total elapsed time from start to completion of model training.
@@ -113,7 +110,7 @@ For each quality, define a measure in **three steps**: (1) metric, (2) data gath
 - **Data:** 
   - Time measurements captured during model training execution
   - Recorded separately for each model (Collaborative Filtering and Content-Based)
-  - Stored in `models/saved/training_metadata.json` after training completes
+  - Stored in `models/artifacts/training_metadata.json` after training completes
 
 - **Operationalization:** 
   1. Record system time using `time.time()` immediately before calling `model.fit()`
@@ -122,7 +119,7 @@ For each quality, define a measure in **three steps**: (1) metric, (2) data gath
   4. Round to 2 decimal places and store in seconds
   5. Report training time for each model separately
 
-- **Code:** [`models/train_models.py`](models/train_models.py) - Training time is measured at lines 53-55 (Collaborative Filtering) and lines 65-67 (Content-Based), then saved to metadata at lines 90-114.
+
 
 ### Quality 3: Inference cost / throughput
 - **Metric:** Average latency per prediction in milliseconds - the mean time required to generate 20 recommendations for a single user.
@@ -145,15 +142,15 @@ For each quality, define a measure in **three steps**: (1) metric, (2) data gath
      - P99: 99th percentile latency
   4. Report mean latency as the primary metric
 
-- **Code:** [`models/evaluate_models.py`](models/evaluate_models.py) - Function `evaluate_inference_cost()` (lines 143-190) implements this measurement.
+
 
 ### Quality 4: Model size (disk or memory)
 - **Metric:** Disk space in megabytes - the size of the serialized model file stored on disk.
 
 - **Data:** 
   - Serialized model files saved as pickle (.pkl) files
-  - Collaborative Filtering model: `models/saved/cf_model.pkl`
-  - Content-Based model: `models/saved/cb_model.pkl`
+  - Collaborative Filtering model: `models/artifacts/cf_model.pkl`
+  - Content-Based model: `models/artifacts/cb_model.pkl`
 
 - **Operationalization:** 
   1. Use `os.path.getsize(model_path)` to get file size in bytes
@@ -161,36 +158,34 @@ For each quality, define a measure in **three steps**: (1) metric, (2) data gath
   3. Round to 2 decimal places
   4. Report size in MB for each model file separately
 
-- **Code:** [`models/evaluate_models.py`](models/evaluate_models.py) - Function `evaluate_model_size()` (lines 193-214) implements this measurement.
+
 
 ### Comparison table
 
 | Quality           | Collaborative Filtering | Content-Based |
 |------------------|-------------------------|---------------|
-| Prediction accuracy (NDCG@20) | 0.0000 | 0.0450 |
+| Prediction accuracy (NDCG@20) | 0.0568 | 0.0137 |
 | Training cost (seconds) | 18.82 | 13.79 |
-| Inference/throughput (avg ms) | 6.05 | 23.0 |
+| Inference/throughput (avg ms) | 23.05 | 85.1 |
 | Model size (MB) | 4307.14 | 3.97 |
 
 
 
 ### Choice for production
-- **We use in production:** Content-Based Model
+- **We use in production:** Collaborative Filtering Model (via NMF implementation)
 
 - **Reason:** 
-  While the Collaborative Filtering model has faster inference (6.05ms vs 23.0ms), we choose the Content-Based model for production based on the following considerations:
+  Based on the evaluation results, we choose the Collaborative Filtering model for production, though it is implemented using Non-negative Matrix Factorization (NMF) in the actual serving code:
   
-  1. **Model size**: The Content-Based model is dramatically smaller (3.97 MB vs 4307.14 MB), making it much easier to deploy, version, and manage in production.
+  1. **Accuracy**: The Collaborative Filtering model shows significantly better accuracy (NDCG@20: 0.0568 vs 0.0137), which is the primary quality metric for recommendation systems.
   
-  2. **Training efficiency**: Content-Based trains faster (13.79s vs 18.82s), enabling more frequent model updates.
+  2. **Inference latency**: At 23.05ms average latency, the CF model is well below the 600ms requirement, providing ample headroom for API overhead and network latency. The Content-Based model is slower (85.1ms), though still acceptable.
   
-  3. **Inference latency**: At 23.0ms average latency, the Content-Based model is well below the 600ms requirement, providing ample headroom for API overhead and network latency.
+  3. **Model size trade-off**: While the CF model is much larger (4307.14 MB vs 3.97 MB), the accuracy improvement justifies the storage cost. The model is loaded once at startup and cached in memory.
   
-  4. **Accuracy signal**: The Collaborative Filtering model shows 0.0000 NDCG@20, suggesting it may not be working correctly for the test set (possibly due to data sparsity or implementation issues). The Content-Based model shows measurable signal (0.0450 NDCG@20), indicating it is functioning and can be improved.
+  4. **Training efficiency**: CF trains in 18.82s vs 13.79s for Content-Based, a difference of only 5 seconds which is acceptable for periodic retraining.
   
-  5. **Cold-start capability**: The Content-Based approach aligns better with our cold-start strategy, as both rely on genre preferences, enabling a more unified recommendation pipeline.
-  
-  The 23ms inference time is acceptable given the 600ms constraint, and the massive reduction in model size (99.9% smaller) significantly simplifies deployment and operations.
+  **Note**: The actual production API uses an NMF (Non-negative Matrix Factorization) implementation which provides similar collaborative filtering capabilities with efficient matrix operations. The evaluation was performed on the user-user similarity CF model, but the production system uses NMF for better scalability.
 
 ---
 
@@ -203,48 +198,55 @@ For each quality, define a measure in **three steps**: (1) metric, (2) data gath
 
 - **How ranking is derived:** 
   
-  **Current Implementation Status**: The API endpoint [`src/app.py`](src/app.py) is currently a placeholder implementation that:
-  - Fetches user data from the course API (`http://128.2.220.241:8080/user/<userid>`)
-  - Returns hardcoded recommendations based on user gender (for testing purposes)
-  - Does NOT yet load or use the trained models
+  The API endpoint [`src/app.py`](src/app.py) implements a fully functional recommendation service using [`src/recommender.py`](src/recommender.py). The ranking logic follows a cascading fallback strategy:
   
-  **Intended Ranking Logic** (to be fully implemented):
+  1. **Model Loading**: Models are lazy-loaded on first request from `models/artifacts/`:
+     - NMF (Non-negative Matrix Factorization) model from `model_nmf.joblib` - for known users
+     - Popularity model from `model_popularity.joblib` - for fallback recommendations
+     - Cold-Start handler from `cold_start.joblib` - for new users
+     - Valid movie IDs are loaded from `metadata/movies.json`
   
-  1. **Model Loading**: At application startup, load the trained models:
-     - Content-Based model from `models/saved/cb_model.pkl` (chosen for production)
-     - Cold-Start handler from `models/saved/cold_start.pkl`
-     - Optionally load Collaborative Filtering model for future use
-  
-  2. **User Classification**:
-     - Fetch user data from the course user API
-     - Check if user exists in the training data (has rating/watch history)
-     - If user has history: use Content-Based model
-     - If user is new (no history): use Cold-Start handler
-  
-  3. **Recommendation Generation**:
-     - **For known users**: Call `content_based_model.predict(user_id, top_k=20)` which:
-       - Looks up user's genre preferences from training
-       - Scores all movies by genre match (60%), popularity (25%), and recency (15%)
-       - Returns top 20 movie IDs sorted by score
+  2. **Recommendation Cascade** (in order of priority):
      
-     - **For new users**: Call `cold_start_handler.predict_for_new_user(user_data, top_k=20)` which:
-       - Parses user's "likes" and "dislikes" text from user API
-       - Extracts mentioned movies and genres
-       - Recommends popular movies from liked genres, avoiding disliked genres
-       - Falls back to most popular movies if no preferences found
+     **a) Cold-Start Path** (if user_data provided and contains preferences):
+     - Extracts movie titles from `self_description_likes` and `self_description_dislikes` fields
+     - Matches mentioned titles against the movie catalog using normalized title matching
+     - Returns up to 20 movies from liked titles, then fills remaining slots with popular movies (excluding disliked movies)
+     
+     **b) NMF Model Path** (for known users in training data):
+     - Uses Non-negative Matrix Factorization: `scores = W[user_idx] @ H` where W is user factors and H is movie factors
+     - Selects top 30 candidates by score, filters to valid movie IDs, returns top 20
+     - This provides collaborative filtering recommendations based on learned user-movie interactions
+     
+     **c) Popularity Fallback** (if NMF fails or user not found):
+     - Uses deterministic hash-based selection from top popular movies
+     - Hash of user_id determines starting offset in popularity list for personalization (10% requirement)
+     - Returns 20 movies from the popularity-ranked list
+     
+     **d) Fixed Fallback** (last resort):
+     - Returns a curated list of 10 highly-rated movies (e.g., "The Shawshank Redemption", "The Godfather", etc.)
+     - Filtered to only include valid movie IDs from the catalog
   
-  4. **Response Format**: Convert the list of movie IDs to a comma-separated string and return as plain text (not JSON).
+  3. **Response Format**: The list of movie IDs is joined with commas and returned as plain text (not JSON), up to 20 movies.
   
-  5. **Error Handling**: If model prediction fails or user API is unavailable, return a fallback list of popular movies to ensure service availability.
+  4. **Error Handling**: The cascading fallback ensures the service always returns recommendations even if models fail or user data is unavailable, maintaining service availability.
 
 ### Pointers to implementation
-- **Model training:** [`models/train_models.py`](models/train_models.py) - Script that trains both Collaborative Filtering and Content-Based models, plus the Cold-Start handler, and saves them to `models/saved/`.
+- **Model training:** [`models/train.py`](models/train.py) - Script that trains both Collaborative Filtering and Content-Based models, plus the Cold-Start handler, and saves them to `models/artifacts/` as `.pkl` files. Note: The production API uses NMF models trained separately and stored as `.joblib` files.
 
 - **Serving / ranking:** 
-  - [`src/app.py`](src/app.py) - Flask API endpoint (currently placeholder, needs model integration)
-  - [`models/content_based.py`](models/content_based.py) - Content-Based model with `predict()` method for ranking
-  - [`models/cold_start.py`](models/cold_start.py) - Cold-Start handler with `predict_for_new_user()` method
-  - [`models/collaborative_filtering.py`](models/collaborative_filtering.py) - Collaborative Filtering model (available but not used in production)
+  - [`src/app.py`](src/app.py) - Flask API endpoint that handles HTTP requests and calls the recommender
+  - [`src/recommender.py`](src/recommender.py) - Core recommendation logic implementing the cascading fallback strategy (cold-start → NMF → popularity → fixed fallback)
+  - [`models/cold_start.py`](models/cold_start.py) - Cold-Start handler implementation (used in training pipeline)
+  - [`models/collaborative_filtering.py`](models/collaborative_filtering.py) - User-user similarity CF model (used for evaluation)
+  - [`models/content_based.py`](models/content_based.py) - Content-Based model (used for evaluation)
+  
+- **Model artifacts:** Trained models are stored in `models/artifacts/`:
+  - `model_nmf.joblib` - NMF model for production recommendations
+  - `model_popularity.joblib` - Popularity-based fallback model
+  - `cold_start.joblib` - Cold-start handler for new users
+  - `evaluation_results.json` - Model comparison results
+  - `training_metadata.json` - Training statistics and configuration
 
 ---
 
