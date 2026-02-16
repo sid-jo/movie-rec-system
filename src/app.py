@@ -30,9 +30,9 @@ def recommend(userid):
         pass  # Proceed without user data (cold start / fallback)
 
     recs = get_recommendations(userid, user_data=user_data, force_popularity=False)
-    # Ensure we return only valid movie IDs, comma-separated, up to 20
+    # Ensure we return only valid movie IDs, comma-separated, up to 20 (plain text, not JSON)
     result = ",".join(recs[:20]) if isinstance(recs, list) else str(recs)
-    return result
+    return result, 200, {"Content-Type": "text/plain; charset=utf-8"}
 
 
 if __name__ == "__main__":
