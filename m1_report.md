@@ -3,12 +3,16 @@
 ## 1. Learning 
 
 ### Data and techniques
-- **Data used:** [Describe what data you use: Kafka stream events, user API, movie API, ratings, watches, user self-descriptions, etc.]
-- **ML technique(s):** [e.g., collaborative filtering, content-based, matrix factorization, cold-start approach.]
-- **Why this approach:** [Brief justification for data and technique choices.]
+- **Data used:** We constructed our dataset by aggregating three primary sources:
+    * **Kafka Event Stream:** We ingested the `movielog2` topic to capture real-time user interactions, specifically filtering for `GET /data/m/...` (watch events) and `GET /rate/...` (explicit ratings). This provided our core user-item interaction matrix.
+    * **User API:** We queried user metadata (`/user/<id>`) to retrieve demographic information and, critically, the **self-described tags** (interests) to assist with new users.
+    * **Movie API:** We enriched our item data by querying `/movie/<id>` to map movie IDs to genres and titles, enabling content-based matching.
+
+- **ML technique(s):** We implemented **Collaborative Filtering using SVD (Matrix Factorization)** as our primary model to capture latent user preferences. For the cold-start problem, we utilized a **Content-Based Filtering** approach mapping user tags to movie genres.
+- **Why this approach:** SVD was chosen for its computational efficiency and ability to handle the high sparsity of our initial dataset while still providing personalized results. The Content-Based approach was selected to leverage the static user metadata (self-described tags) available immediately upon user signup, ensuring we can serve relevant recommendations before any watch history exists.
 
 ### Cold-start problem
-- **How we address cold start:** [Describe how you use users' self-described "likes" and "dislikes" (and any other signals) for new users with no history.]
+- **How we address cold start:** When a request arrives for a user with no history in our Kafka logs, we query the User API for their `self-described tags`. We match these tags against our Movie API metadata (genres/keywords) to filter and rank movies. If no tags are present, we fall back to a global popularity baseline.
 - **Implementation:** [Pointer to code – e.g., `models/cold_start.py`, `notebooks/...`, or GitHub path.]
 
 ### Training at least two models
@@ -64,10 +68,13 @@ For each quality, define a measure in **three steps**: (1) metric, (2) data gath
 ## 3. Prediction Service 
 
 ### Implementation
-- **Stack:** [e.g., Flask on port 8082, gunicorn, etc.]
-- **Endpoint:** `GET /recommend/<userid>` → single line: up to 20 comma-separated **movie IDs**, highest to lowest recommendation.
-- **How ranking is derived:** [How you go from your model(s) to an ordered list of movie IDs – e.g., scores from CF, then merge with cold-start for new users.]
-
+- **Stack:** Flask serving a Python-based inference engine, deployed on the team VM.
+- **Endpoint:** `http://128.2.220.243:8082/recommend/<userid>`
+- **Response Format:** Returns a single line of up to 20 comma-separated **movie IDs**, highest to lowest recommendation.
+- **How ranking is derived:** 
+    1. Check if User ID exists in the SVD latent matrix.
+    2. **If yes:** Predict ratings for unstopped movies, sort by score descending, take top 20.
+    3. **If no (Cold Start):** Fetch User Tags -> Match with Movie Genres -> Sort by Popularity within Genre -> Take top 20.
 ### Pointers to implementation
 - **Model training:** [Link to repo path, e.g. `models/train_models.py`.]
 - **Serving / ranking:** [Link to repo path, e.g. `src/app.py` and any helper that builds the list of movie IDs.]
