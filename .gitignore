@@ -1,3 +1,14 @@
+# Virtual environments
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+
+# Project
 kafka_2.13-3.6.0.tgz
 kafka_2.13-3.6.0
 raw_data/

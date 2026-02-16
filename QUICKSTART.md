@@ -82,7 +82,7 @@ python notebooks/data_prep.py
 
 ```bash
 # Example: run from repo root; script may read from Kafka or a log file
-python src/scripts/fetch_metadata.py
+python scripts/fetch_metadata.py
 # Output: metadata/users.json, metadata/movies.json (or similar)
 ```
 
@@ -92,28 +92,28 @@ Adjust paths and script names to match your project.
 
 ## 4. Train models (template)
 
-Trains at least two models (e.g. collaborative filtering, content-based) and a cold-start handler. Saves artifacts under `models/saved/`.
+Trains at least two models (e.g. collaborative filtering, content-based) and a cold-start handler. Saves artifacts under `models/artifacts/`.
 
 ```bash
 # From repo root. Requires data/processed/ratings.csv, watches.csv, metadata/*.json
 cd models
-python train_models.py
+python train.py
 ```
 
 **Expected outputs:**
 
 | Output | Description |
 |--------|-------------|
-| `models/saved/cf_model.pkl` | Collaborative filtering model |
-| `models/saved/cb_model.pkl` | Content-based model |
-| `models/saved/cold_start.pkl` | Cold-start handler |
-| `models/saved/training_metadata.json` | Training config and stats |
+| `models/artifacts/cf_model.pkl` | Collaborative filtering model |
+| `models/artifacts/cb_model.pkl` | Content-based model |
+| `models/artifacts/cold_start.pkl` | Cold-start handler |
+| `models/artifacts/training_metadata.json` | Training config and stats |
 
 **Optional – evaluate models:**
 
 ```bash
 cd models
-python evaluate_models.py
+python evaluate.py
 ```
 
 ---
@@ -124,10 +124,10 @@ Run project tests from repo root.
 
 ```bash
 # From repo root
-python -m pytest test/ -v
+python -m pytest tests/ -v
 
 # Or run a specific test file
-python -m pytest test/test_api_format.py -v
+python -m pytest tests/test_api_format.py -v
 ```
 
 **Note:** Some tests may require network (course API) or GCS; skip or mock as needed for CI.
@@ -136,11 +136,11 @@ python -m pytest test/test_api_format.py -v
 
 | Test file / dir | Purpose |
 |-----------------|---------|
-| `test/test_api_format.py` | User/movie API response format |
-| `test/test_kafka.py` | Kafka parsing / connectivity |
-| `test/test_gcs.py` | GCS sync (if used) |
+| `tests/test_api_format.py` | User/movie API response format |
+| `tests/test_kafka.py` | Kafka parsing / connectivity |
+| `tests/test_gcs.py` | GCS sync (if used) |
 
-Add or rename entries to match your `test/` layout.
+Add or rename entries to match your `tests/` layout.
 
 ---
 
@@ -175,8 +175,8 @@ Use this to verify a full run:
 - [ ] `src/app.py` runs and `curl http://localhost:8082/recommend/1` returns a comma-separated list (movie IDs)
 - [ ] `data/processed/ratings.csv` and `watches.csv` exist (or data prep step is documented)
 - [ ] `metadata/users.json` and `metadata/movies.json` exist (or fetch step is documented)
-- [ ] `models/train_models.py` runs and writes `models/saved/*.pkl`
-- [ ] `pytest test/` runs (or known failing tests are documented)
+- [ ] `models/train.py` runs and writes `models/artifacts/*.pkl` (or `scripts/train.py` for NMF/Popularity)
+- [ ] `pytest tests/` runs (or known failing tests are documented)
 
 ---
 
@@ -194,18 +194,19 @@ Use this to verify a full run:
 │   ├── kafka_to_gcs.py
 │   └── scripts/        # Data fetch, etc.
 ├── models/
-│   ├── train_models.py
-│   ├── evaluate_models.py
+│   ├── train.py
+│   ├── evaluate.py
 │   ├── collaborative_filtering.py
 │   ├── content_based.py
 │   ├── cold_start.py
-│   └── saved/          # Trained models (after training)
+│   └── artifacts/      # Trained models (after training)
+├── scripts/            # run_kafka_ingest.py, fetch_metadata.py, train.py, etc.
 ├── data/
 │   ├── raw_logs/       # Raw Kafka-style logs
 │   └── processed/      # ratings.csv, watches.csv
 ├── metadata/           # users.json, movies.json
 ├── notebooks/          # data_prep.py, etc.
-└── test/               # Unit/integration tests
+└── tests/              # Unit/integration tests
 ```
 
 Adjust this tree to match your repo; keep QUICKSTART in sync when you add or rename key paths.
