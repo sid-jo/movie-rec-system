@@ -1,0 +1,5 @@
+outs:
+- md5: 4c043471f04f182bdccae2a4d02d5349
+  size: 1244707
+  hash: md5
+  path: cold_start.pkl

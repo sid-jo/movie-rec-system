@@ -1,0 +1,5 @@
+outs:
+- md5: edb53effcff1f33a01a304942542bd59
+  size: 2369340
+  hash: md5
+  path: cb_model.pkl
