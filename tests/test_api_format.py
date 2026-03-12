@@ -1,53 +1,35 @@
-import requests
-import json
+import os
 
-API_BASE = "http://128.2.220.241:8080"
+import pytest
 
-# Test single user
-print("Testing single user API...")
-response = requests.get(f"{API_BASE}/user/1", timeout=10)
-print(f"Status: {response.status_code}")
-print(f"Response type: {type(response.json())}")
-print(f"Response content:")
-print(json.dumps(response.json(), indent=2)[:1000])
 
-print("\n" + "="*60 + "\n")
+@pytest.mark.integration
+def test_course_api_user_and_movie_shapes_smoke():
+    if os.environ.get("RUN_INTEGRATION_TESTS") != "1":
+        pytest.skip("integration test (set RUN_INTEGRATION_TESTS=1 to enable)")
 
-# Test batch users
-print("Testing batch user API (3 users)...")
-response = requests.get(f"{API_BASE}/user/1,2,3", timeout=10)
-print(f"Status: {response.status_code}")
-print(f"Response type: {type(response.json())}")
-print(f"Response content:")
-print(json.dumps(response.json(), indent=2)[:1000])
+    import json
+    import requests
 
-print("\n" + "="*60 + "\n")
+    API_BASE = "http://128.2.220.241:8080"
 
-# Test single movie
-print("Testing single movie API...")
-# We need a real movie ID - let's get one from Kafka data
-from google.cloud import storage
-client = storage.Client(project='mlip-spring2026')
-bucket = client.bucket('mlip-team2-movielog')
-blobs = list(bucket.list_blobs(prefix='raw_logs/', max_results=1))
+    resp = requests.get(f"{API_BASE}/user/1", timeout=10)
+    assert resp.status_code == 200
+    user = resp.json()
+    assert isinstance(user, dict)
+    assert "user_id" in user
 
-movieid = None
-if blobs:
-    content = blobs[0].download_as_string().decode('utf-8')
-    for line in content.strip().split('\n')[:100]:
-        if '"movieid"' in line:
-            try:
-                data = json.loads(line)
-                movieid = data.get('movieid')
-                if movieid:
-                    break
-            except:
-                pass
+    # Pick a known movie id from metadata if available; otherwise skip movie check.
+    # (Avoids needing GCS just to find an ID.)
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    movies_path = os.path.join(project_root, "metadata", "movies.json")
+    if not os.path.exists(movies_path):
+        pytest.skip("metadata/movies.json missing for movie smoke test")
 
-if movieid:
-    print(f"Using movie ID: {movieid}")
-    response = requests.get(f"{API_BASE}/movie/{movieid}", timeout=10)
-    print(f"Status: {response.status_code}")
-    print(f"Response type: {type(response.json())}")
-    print(f"Response content:")
-    print(json.dumps(response.json(), indent=2)[:1000])
+    with open(movies_path) as f:
+        movies = json.load(f)
+    movieid = next(iter(movies.keys()))
+    resp = requests.get(f"{API_BASE}/movie/{movieid}", timeout=10)
+    assert resp.status_code == 200
+    movie = resp.json()
+    assert isinstance(movie, dict)
