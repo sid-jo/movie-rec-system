@@ -14,7 +14,7 @@
 | 🧪 M2 / Pipeline | Define one command / script to run end-to-end training and write models to `models/artifacts/` | | |
 | 🧪 M2 / Data Quality | Add schema checks for Kafka logs, user API, movie API, and `/recommend/<userid>` inputs | | |
 | 🧪 M2 / Data Quality | Implement simple drift checks on key fields (e.g., ratings, watch events, request mix) | | |
-| 🧪 M2 / Testing | Add unit tests for data parsing, feature engineering, and model utilities | Barath | |
+| 🧪 M2 / Testing | Add unit tests for data parsing, feature engineering, and model utilities | | |
 | 🧪 M2 / Testing | Add tests for `get_recommendations` (known user, cold-start, popularity fallback, edge cases) | | |
 | 🧪 M2 / Testing | Add tests for Flask API behavior and response format (mocking user API) | | |
 | ⚙️ M2 / CI | Set up CI (e.g., GitHub Actions) to install deps and run tests on each push/PR | Barath | |
