@@ -10,8 +10,6 @@
 
 | Area | Task | Assigned | Status |
 |------|------|----------|--------|
-
-
 | 🧪 M2 / Pipeline | Refactor data → features → train → evaluate into reusable Python modules (no notebook-only logic) | | |
 | 🧪 M2 / Pipeline | Define one command / script to run end-to-end training and write models to `models/artifacts/` | | |
 | 🧪 M2 / Data Quality | Add schema checks for Kafka logs, user API, movie API, and `/recommend/<userid>` inputs | | |
