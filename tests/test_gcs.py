@@ -1,5 +1,10 @@
 """Test GCS connection to mlip-team2-movielog bucket."""
 import os
+import pytest
+
+# Skip this GCS integration test in CI where credentials are not available.
+if os.getenv("CI", "").lower() == "true":
+    pytest.skip("Skipping GCS-dependent test in CI environment.", allow_module_level=True)
 
 from google.cloud import storage
 
