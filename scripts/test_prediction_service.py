@@ -20,10 +20,16 @@ import time
 from collections import Counter
 from urllib.request import urlopen, Request
 from urllib.error import HTTPError, URLError
-
-# Load user IDs from ratings data
 import os
 import sys
+
+import pytest
+
+# Skip this integration-style script when collected by pytest in CI.
+if os.getenv("CI", "").lower() == "true":
+    pytest.skip("Skipping prediction-service load test in CI environment.", allow_module_level=True)
+
+# Load user IDs from ratings data
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
