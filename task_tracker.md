@@ -1,5 +1,5 @@
 <p align="center">
-  <strong>📋 M1 Task Tracker</strong>
+  <strong>📋 M2 Task Tracker</strong>
 </p>
 
 <p align="center">
@@ -10,33 +10,28 @@
 
 | Area | Task | Assigned | Status |
 |------|------|----------|--------|
-| 📥 Data / Kafka | Configure Kafka consumer to use course Kafka (bootstrap servers + topic from Canvas) | | |
-| 📥 Data / Kafka | Run Kafka collector and/or Kafka→GCS so raw logs are ingested | | |
-| 📥 Data / Kafka | Ensure `data/raw_logs/` (or GCS) has recent log files | | |
-| 📥 Data / Kafka | Run metadata fetch so `metadata/users.json` and `metadata/movies.json` are up to date | | |
-| 📊 Data / Prep | Run data prep (`notebooks/data_prep.py` or equivalent) to produce `data/processed/ratings.csv` and `watches.csv` | | |
-| 🤖 Models / Training | Run `models/train.py` or `scripts/train.py` and confirm `models/artifacts/` has model artifacts | | |
-| 📈 Models / Evaluation | Run model comparison (accuracy, training cost, inference cost, model size) and record results | Sid | 🟢 Done |
-| 📈 Models / Evaluation | Add/run evaluation code and document metrics (3-step: metric, data, operationalization) | | |
-| 🔧 API / Format | Change API response to single line: up to 20 comma-separated movie IDs only (no titles, no userid) | | |
-| 🚀 API / Serving | Load saved models (CF, content-based, cold-start) at app startup in `src/app.py` | | |
-| 🚀 API / Serving | Implement recommendation logic: use CF/content-based for known users, cold-start for new users | | |
-| 🚀 API / Serving | Ensure response latency < 600 ms (optimize/cache if needed) | | |
-| 🆕 Cold start | Use user API "likes"/"dislikes" (and any other signals) in cold-start path | | |
-| 🆕 Cold start | Wire ColdStartHandler into API for new users and document in report | | |
-| 🌐 Deployment | Deploy recommendation service on team VM, port 8082, reachable by course | | |
-| 🌐 Deployment | Keep service running for 24h window (before/after M1 submission); use process manager if needed | | |
-| 🌐 Deployment | Verify firewall: port 8082 open; test `curl http://<VM>:8082/recommend/<userid>` | | |
-| 📝 M1 Report | Create Report Templates (.md and Doc) | Barath/Bruce | 🟢 Done |
-| 📝 M1 Report | Fill Learning section (data, techniques, cold start, link to training code) | | |
-| 📝 M1 Report | Fill Model comparison (four metrics in 3-step format, table, production choice, link to eval code) | | |
-| 📝 M1 Report | Fill Prediction service section (how ranking is derived, links to training and serving code) | | |
-| 📝 M1 Report | Ensure meeting notes link shows who / what / when for M1 | Barath/Bruce | 🟢 Done |
-| ✅ Admin | Push final code; ensure `m1_report.md` (or .pdf) in repo root | | |
-| ✅ Admin | Submit latest commit URL on Canvas | | |
-| ✅ Admin | Schedule debrief with team mentor within one week after submission | | |
-| ✅ Admin | Each member: complete Teammaker (Catme) survey | | |
-| ✅ Admin | Each member: complete M1 teamwork survey | | |
+
+
+| 🧪 M2 / Pipeline | Refactor data → features → train → evaluate into reusable Python modules (no notebook-only logic) | | |
+| 🧪 M2 / Pipeline | Define one command / script to run end-to-end training and write models to `models/artifacts/` | | |
+| 🧪 M2 / Data Quality | Add schema checks for Kafka logs, user API, movie API, and `/recommend/<userid>` inputs | | |
+| 🧪 M2 / Data Quality | Implement simple drift checks on key fields (e.g., ratings, watch events, request mix) | | |
+| 🧪 M2 / Testing | Add unit tests for data parsing, feature engineering, and model utilities | | |
+| 🧪 M2 / Testing | Add tests for `get_recommendations` (known user, cold-start, popularity fallback, edge cases) | | |
+| 🧪 M2 / Testing | Add tests for Flask API behavior and response format (mocking user API) | | |
+| ⚙️ M2 / CI | Set up CI (e.g., GitHub Actions) to install deps and run tests on each push/PR | | |
+| ⚙️ M2 / CI | Enable coverage reporting for core modules (src, models, scripts) | | |
+| 📊 M2 / Offline Eval | Define offline accuracy metric (3-step: metric, data, operationalization) and data split | | |
+| 📊 M2 / Offline Eval | Implement offline evaluation script/notebook and run it for current production model | | |
+| 🌐 M2 / Online Eval | Define online accuracy metric and required telemetry from Kafka / logs | | |
+| 🌐 M2 / Online Eval | Implement script to compute online accuracy from recent production data | | |
+| 💰 M2 / Cost | Define online cost metric (license cost + any LLM cost) in 3-step format | | |
+| 💰 M2 / Cost | Implement script to compute online cost metric from production data | | |
+| 📝 M2 Report | Draft `m2_report` sections (offline eval, online eval, data quality, pipeline & testing, CI) with code links | | |
+| 📝 M2 Report | Add team contract update (or “no change”) and brief note on commits / PR process | | |
+| ✅ M2 Admin | Ensure CI is green on main branch and tests are stable | | |
+| ✅ M2 Admin | Submit latest commit URL and schedule M2 debrief with mentor | | |
+| ✅ M2 Admin | Each member completes M2 teamwork survey | | |
 
 ---
 
