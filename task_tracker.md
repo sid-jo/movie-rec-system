@@ -15,8 +15,8 @@
 | 🧪 M2 / Data Quality | Add schema checks for Kafka logs, user API, movie API, and `/recommend/<userid>` inputs | | |
 | 🧪 M2 / Data Quality | Implement simple drift checks on key fields (e.g., ratings, watch events, request mix) | | |
 | 🧪 M2 / Testing | Add unit tests for data parsing, feature engineering, and model utilities | Barath | |
-| 🧪 M2 / Testing | Add tests for `get_recommendations` (known user, cold-start, popularity fallback, edge cases) | Barath | |
-| 🧪 M2 / Testing | Add tests for Flask API behavior and response format (mocking user API) | Barth | |
+| 🧪 M2 / Testing | Add tests for `get_recommendations` (known user, cold-start, popularity fallback, edge cases) | | |
+| 🧪 M2 / Testing | Add tests for Flask API behavior and response format (mocking user API) | | |
 | ⚙️ M2 / CI | Set up CI (e.g., GitHub Actions) to install deps and run tests on each push/PR | Barath | |
 | ⚙️ M2 / CI | Enable coverage reporting for core modules (src, models, scripts) | Barath | |
 | 📊 M2 / Offline Eval | Define offline accuracy metric (3-step: metric, data, operationalization) and data split | | |
