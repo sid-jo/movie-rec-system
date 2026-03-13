@@ -1,5 +1,11 @@
+import os
 import requests
 import json
+import pytest
+
+# Skip this integration-style test when running in CI (requires GCS credentials).
+if os.getenv("CI", "").lower() == "true":
+    pytest.skip("Skipping GCS-dependent API format test in CI environment.", allow_module_level=True)
 
 API_BASE = "http://128.2.220.241:8080"
 
