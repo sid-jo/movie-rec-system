@@ -1,0 +1,28 @@
+{
+  "evaluation_type": "online_accuracy_proxy",
+  "status": "ok",
+  "window_days": 7,
+  "positive_rating_threshold": 4.0,
+  "counts": {
+    "recommendation_events_200": 3283,
+    "watch_events": 380236,
+    "rating_events": 2286,
+    "recommendations_considered": 3283
+  },
+  "metrics": {
+    "watch_through_rate": 0.00586,
+    "positive_rating_rate": 0.0
+  },
+  "cost": {
+    "total_license_cost_usd": 80268.5,
+    "per_view_license_cost_usd": 0.2111,
+    "rec_attributed_cost_usd": 109.22,
+    "rec_attributed_views": 404,
+    "per_rec_attributed_view_cost_usd": 0.2703,
+    "per_recommendation_cost_usd": 0.0333,
+    "total_views": 380236
+  },
+  "llm_tokens": 0,
+  "collection_duration_sec": 300.1,
+  "collected_at": "2026-03-14T18:39:04.244738"
+}
