@@ -1,10 +1,5 @@
 # Milestone 2 Report: Model and Infrastructure Quality
 
-**Team:** Model Impossible
-**Course:** 17-445/17-645/17-745 Machine Learning in Production / 11-695 AI Engineering
-
----
-
 ## Offline Evaluation
 
 *(1 page of text max, not counting figures)*
