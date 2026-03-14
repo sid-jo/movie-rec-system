@@ -66,6 +66,11 @@ def main(argv: Optional[list[str]] = None) -> int:
     paths = default_paths()
     out_dir = args.output_dir or paths.data_raw_logs
 
+    print(
+        f"[ingest] starting: bucket=gs://{args.bucket}/{args.prefix} "
+        f"→ output_dir={out_dir}"
+    )
+
     res = run(
         bucket_name=args.bucket,
         prefix=args.prefix,
@@ -73,7 +78,10 @@ def main(argv: Optional[list[str]] = None) -> int:
         project_id=args.project_id,
         max_results=args.max_results,
     )
-    print(f"downloaded={res.downloaded} skipped_existing={res.skipped_existing} → {res.output_dir}")
+    print(
+        f"[ingest] completed: downloaded={res.downloaded} "
+        f"skipped_existing={res.skipped_existing} → {res.output_dir}"
+    )
     return 0
 
 

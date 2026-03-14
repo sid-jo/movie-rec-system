@@ -10,17 +10,25 @@ from pipeline.paths import default_paths
 from pipeline.telemetry import load_events
 
 
-def run(raw_logs_dir: str, output_path: str) -> dict[str, Any]:
+def run(raw_logs_dir: str, output_path: str, max_events: int | None = None) -> dict[str, Any]:
     """
     Online evaluation (accuracy proxy) computed from production telemetry.
+    Use max_events to cap memory (e.g. on small VMs) by only loading that many events.
     """
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
 
-    events = load_events(raw_logs_dir)
+    events = load_events(raw_logs_dir, max_events=max_events)
     # Consider only recommendation events that were successfully served
     rec_events = [e for e in events if e.type == "recommendation" and e.status == 200 and e.recommendations and e.ts]
     watch_events = [e for e in events if e.type == "watch" and e.movie_id and e.ts]
     rating_events = [e for e in events if e.type == "rating" and e.movie_id and e.ts and e.rating is not None]
+
+    # Diagnostic: so user sees what's in the data (e.g. no recommendation events in this window)
+    type_counts = {}
+    for e in events:
+        type_counts[e.type] = type_counts.get(e.type, 0) + 1
+    print(f"[online_eval] event counts: {dict(type_counts)}")
+    print(f"[online_eval] recommendation (status=200 with recs): {len(rec_events)}, watch: {len(watch_events)}, rating: {len(rating_events)}")
 
     # Index recommendation windows by user (sorted)
     rec_by_user: dict[str, list[tuple[Any, list[str]]]] = {}
@@ -66,10 +74,10 @@ def run(raw_logs_dir: str, output_path: str) -> dict[str, Any]:
     rating_hits, total_recs2 = _attributed_hits(rating_events, "rating_pos")
     total_recs = max(total_recs, total_recs2)
 
+    no_rec_data = len(rec_events) == 0
     result = {
         "evaluation_type": "online_accuracy_proxy",
         "status": "ok",
-        "raw_logs_dir": os.path.abspath(raw_logs_dir),
         "window_days": 7,
         "positive_rating_threshold": positive_threshold,
         "counts": {
@@ -84,6 +92,15 @@ def run(raw_logs_dir: str, output_path: str) -> dict[str, Any]:
         },
         "llm_tokens": 0,
     }
+    if no_rec_data:
+        result["data_notes"] = (
+            "No recommendation events (status=200 with recommendations list) found in this raw log window. "
+            "Watch-through and positive-rating rates are 0. To get non-zero online metrics, use raw logs that "
+            "include recommendation requests (e.g. from when the course server was sending traffic to your API)."
+        )
+    if max_events is not None:
+        result["max_events_cap"] = max_events
+        result["events_loaded"] = len(events)
     with open(output_path, "w") as f:
         json.dump(result, f, indent=2)
     return result
@@ -93,13 +110,17 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Online evaluation (accuracy proxy) → JSON")
     p.add_argument("--raw-logs-dir", default=None, help="Directory of raw log jsonl files")
     p.add_argument("--output", default=None, help="Path to write online_eval.json")
+    p.add_argument("--max-events", type=int, default=None, help="Cap events loaded (avoids OOM on small VMs; e.g. 500000)")
     args = p.parse_args(argv)
 
     paths = default_paths()
     raw_dir = args.raw_logs_dir or paths.data_raw_logs
     out = args.output or os.path.join(paths.reports_dir, "online_eval.json")
-    res = run(raw_logs_dir=raw_dir, output_path=out)
-    print(f"wrote {out} (status={res['status']})")
+
+    print(f"[online_eval] starting: raw_logs_dir={raw_dir} → output={out}" + (f" (max_events={args.max_events})" if args.max_events else ""))
+
+    res = run(raw_logs_dir=raw_dir, output_path=out, max_events=args.max_events)
+    print(f"[online_eval] completed: wrote {out} (status={res['status']})")
     return 0
 
 

@@ -6,13 +6,14 @@ import os
 from typing import Any
 from datetime import timedelta
 
-from pipeline.paths import default_paths
+from pipeline.paths import default_paths, path_relative_to_root
 from pipeline.telemetry import load_events
 
 
-def run(raw_logs_dir: str, metadata_dir: str, output_path: str) -> dict[str, Any]:
+def run(raw_logs_dir: str, metadata_dir: str, output_path: str, max_events: int | None = None) -> dict[str, Any]:
     """
     Online cost evaluation computed from telemetry + `metadata/movies.json` cost field.
+    Use max_events to cap memory (e.g. on small VMs).
     """
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
 
@@ -26,7 +27,7 @@ def run(raw_logs_dir: str, metadata_dir: str, output_path: str) -> dict[str, Any
                 if isinstance(m, dict) and isinstance(m.get("cost"), (int, float)):
                     cost_by_mid[str(mid)] = float(m["cost"])
 
-    events = load_events(raw_logs_dir)
+    events = load_events(raw_logs_dir, max_events=max_events)
     rec_events = [e for e in events if e.type == "recommendation" and e.status == 200 and e.recommendations and e.ts]
     watch_events = [e for e in events if e.type == "watch" and e.movie_id and e.ts]
 
@@ -72,11 +73,12 @@ def run(raw_logs_dir: str, metadata_dir: str, output_path: str) -> dict[str, Any
                 attributed_watches += 1
                 attributed_cost += float(cost_by_mid.get(w.movie_id, 0.0))
 
+    paths = default_paths()
     result = {
         "evaluation_type": "online_cost",
         "status": "ok",
-        "raw_logs_dir": os.path.abspath(raw_logs_dir),
-        "metadata_dir": os.path.abspath(metadata_dir),
+        "raw_logs_dir": path_relative_to_root(raw_logs_dir, paths.root),
+        "metadata_dir": path_relative_to_root(metadata_dir, paths.root),
         "window_days": 7,
         "llm_tokens": 0,
         "counts": {
@@ -94,6 +96,9 @@ def run(raw_logs_dir: str, metadata_dir: str, output_path: str) -> dict[str, Any
             "If movie cost is missing in metadata, cost is treated as 0 for that watch.",
         ],
     }
+    if max_events is not None:
+        result["max_events_cap"] = max_events
+        result["events_loaded"] = len(events)
     with open(output_path, "w") as f:
         json.dump(result, f, indent=2)
     return result
@@ -104,13 +109,14 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--raw-logs-dir", default=None)
     p.add_argument("--metadata-dir", default=None)
     p.add_argument("--output", default=None, help="Path to write online_cost.json")
+    p.add_argument("--max-events", type=int, default=None, help="Cap events loaded (avoids OOM; e.g. 500000)")
     args = p.parse_args(argv)
 
     paths = default_paths()
     raw_dir = args.raw_logs_dir or paths.data_raw_logs
     md_dir = args.metadata_dir or paths.metadata_dir
     out = args.output or os.path.join(paths.reports_dir, "online_cost.json")
-    res = run(raw_logs_dir=raw_dir, metadata_dir=md_dir, output_path=out)
+    res = run(raw_logs_dir=raw_dir, metadata_dir=md_dir, output_path=out, max_events=args.max_events)
     print(f"wrote {out} (status={res['status']})")
     return 0
 

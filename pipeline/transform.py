@@ -132,11 +132,14 @@ def main(argv: list[str] | None = None) -> int:
     paths = default_paths()
     raw_dir = args.raw_logs_dir or paths.data_raw_logs
     out_dir = args.output_dir or paths.data_processed
+
+    print(f"[transform] starting: raw_logs_dir={raw_dir} → output_dir={out_dir}")
+
     res = run(raw_logs_dir=raw_dir, output_dir=out_dir)
     print(
-        f"wrote processed CSVs to {out_dir} (files={res.input_files}, "
-        f"ratings={len(res.ratings):,}, watches={len(res.watches):,}, "
-        f"errors={res.parse_errors})"
+        f"[transform] completed: wrote processed CSVs to {out_dir} "
+        f"(files={res.input_files}, ratings={len(res.ratings):,}, "
+        f"watches={len(res.watches):,}, errors={res.parse_errors})"
     )
     return 0
 

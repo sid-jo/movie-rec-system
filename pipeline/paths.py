@@ -29,3 +29,11 @@ def default_paths(root: str | None = None) -> PipelinePaths:
         reports_dir=os.path.join(r, "reports"),
     )
 
+
+def path_relative_to_root(path: str, root: str | None = None) -> str:
+    """Return path relative to project root for use in reports (no absolute dirs)."""
+    r = os.path.abspath(root or project_root())
+    p = os.path.abspath(path)
+    rel = os.path.relpath(p, r)
+    return rel.replace("\\", "/")
+

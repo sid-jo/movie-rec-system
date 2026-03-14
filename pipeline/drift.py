@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from pipeline.data_quality import summarize_issues, validate_kafka_event
-from pipeline.paths import default_paths
+from pipeline.paths import default_paths, path_relative_to_root
 
 
 def _safe_log(x: float) -> float:
@@ -199,7 +199,9 @@ def compare_to_baseline(baseline: dict[str, Any], current: dict[str, Any]) -> di
 
 def run(raw_logs_dir: str, metadata_dir: str, output_path: str, baseline_path: str | None) -> dict[str, Any]:
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+    paths = default_paths()
     current = compute_window_stats(raw_logs_dir=raw_logs_dir, metadata_dir=metadata_dir)
+    current["window"]["raw_logs_dir"] = path_relative_to_root(raw_logs_dir, paths.root)
 
     baseline = None
     comparison = None
@@ -210,7 +212,7 @@ def run(raw_logs_dir: str, metadata_dir: str, output_path: str, baseline_path: s
 
     report = {
         "report_type": "drift_report",
-        "baseline_path": os.path.abspath(baseline_path) if baseline_path else None,
+        "baseline_path": path_relative_to_root(baseline_path, paths.root) if baseline_path else None,
         "current": current,
         "comparison": comparison,
     }
@@ -232,9 +234,14 @@ def main(argv: list[str] | None = None) -> int:
     md_dir = args.metadata_dir or paths.metadata_dir
     out = args.output or os.path.join(paths.reports_dir, "drift_report.json")
 
+    print(
+        f"[drift] starting: raw_logs_dir={raw_dir}, metadata_dir={md_dir} "
+        f"baseline={args.baseline or 'None'} → output={out}"
+    )
+
     rep = run(raw_logs_dir=raw_dir, metadata_dir=md_dir, output_path=out, baseline_path=args.baseline)
     flags = (rep.get("comparison") or {}).get("flags") if rep.get("comparison") else {}
-    print(f"wrote {out} (flags={flags})")
+    print(f"[drift] completed: wrote {out} (flags={flags})")
     return 0
 
 

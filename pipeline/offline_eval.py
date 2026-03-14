@@ -6,7 +6,7 @@ import os
 from dataclasses import dataclass
 from typing import Any, Iterable
 
-from pipeline.paths import default_paths
+from pipeline.paths import default_paths, path_relative_to_root
 
 
 def _dcg(recommended: list[str], relevant: set[str], k: int) -> float:
@@ -113,7 +113,7 @@ def run(artifacts_dir: str, processed_dir: str, metadata_dir: str, output_path: 
 
     results = {
         "evaluation_type": "offline",
-        "model": {"name": "served_recommender", "artifacts_dir": os.path.abspath(artifacts_dir)},
+        "model": {"name": "served_recommender", "artifacts_dir": path_relative_to_root(artifacts_dir, paths.root)},
         "metric": {"name": "ndcg@20", "k": k, "rating_threshold": rating_threshold},
         "data_split": {"type": "per_user_chronological", "test_ratio": test_ratio},
         "methodology_notes": [
@@ -155,8 +155,13 @@ def main(argv: list[str] | None = None) -> int:
     metadata_dir = args.metadata_dir or paths.metadata_dir
     out = args.output or os.path.join(paths.reports_dir, "offline_eval.json")
 
+    print(
+        f"[offline_eval] starting: artifacts_dir={artifacts_dir}, "
+        f"processed_dir={processed_dir}, metadata_dir={metadata_dir} → output={out}"
+    )
+
     res = run(artifacts_dir=artifacts_dir, processed_dir=processed_dir, metadata_dir=metadata_dir, output_path=out)
-    print(f"wrote {out} (ndcg_mean={res['results']['ndcg_mean']:.4f})")
+    print(f"[offline_eval] completed: wrote {out} (ndcg_mean={res['results']['ndcg_mean']:.4f})")
     return 0
 
 

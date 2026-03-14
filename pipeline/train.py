@@ -80,8 +80,16 @@ def main(argv: list[str] | None = None) -> int:
     metadata_dir = args.metadata_dir or paths.metadata_dir
     artifacts_dir = args.artifacts_dir or paths.model_artifacts
 
+    print(
+        f"[train] starting: processed_dir={processed_dir}, metadata_dir={metadata_dir} "
+        f"→ artifacts_dir={artifacts_dir}"
+    )
+
     res = run(processed_dir=processed_dir, metadata_dir=metadata_dir, artifacts_dir=artifacts_dir)
-    print(f"trained artifacts in {res['artifacts_dir']} (users={res['n_users']}, movies={res['n_movies']})")
+    print(
+        f"[train] completed: artifacts_dir={res['artifacts_dir']} "
+        f"(users={res['n_users']}, movies={res['n_movies']})"
+    )
     return 0
 
 
