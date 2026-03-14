@@ -2,71 +2,73 @@
 
 ## Offline Evaluation
 
-*(1 page of text max, not counting figures)*
 
 ### Validation/Test Data
 
-<!-- Describe the validation/test dataset: how it was derived, what time period it covers, how it was split from training data, and any preprocessing applied. -->
+The source data is in `data/processed/ratings.csv`, derived from the production Kafka stream. Each row is a user–movie rating event (1–5 stars) with a timestamp. The dataset contains roughly 210,000 ratings across approximately 1,000,000 users and 20,000 movies.
+
+We apply a **per-user chronological split**: for each user, all rating events are sorted by timestamp and the most recent 20% are held out as the test set, with the remaining 80% forming the training set. This produces a test set of ~42,000 ratings. Splitting within each user (rather than globally by time) ensures every user has at least one test rating.
 
 ### Accuracy Metric
 
-<!-- Provide a 3-step description of the accuracy metric used:
-1. What is being measured (e.g., predicted ranking vs. actual watch behavior)
-2. How the metric is operationalized (formula, computation method)
-3. Justification for why this metric is appropriate for the problem -->
+**The measure:** For each user in the test set, we measure how well the served recommender ranks movies that the user actually liked (rated ≥ 4.0 out of 5) in their held-out period. Specifically, we measure whether liked movies appear early in a top-20 recommendation list.
+
+**Operationalization with NDCG@20:** We compute the normalized discounted cumulative gain at rank 20. For each user, the relevant set is the collection of movies they rated ≥ 4.0 in their test split. DCG is computed as:
+
+$$\sum_{i=1}^{20} \frac{\mathbf{1}[\text{rec}_i \in \text{relevant}]}{\log_2(i+2)}$$
+
+IDCG is the maximum possible DCG given the number of relevant items. NDCG@20 = DCG / IDCG, normalized to [0, 1]. The final reported metric is the mean NDCG@20 across all evaluated users. We skipped users with no relevant test items and count them separately.
+
+**Justification:** NDCG@20 is a good choice for this problem primarily because our service returns exactly 20 recommendations per request, so $k = 20$ directly matches the output contract. Additionally, it rewards placing liked movies higher in the ranking and normalizes for users with different numbers of liked movies, giving us a standardized measure when comparing across users.
 
 ### Avoiding Common Pitfalls
 
-<!-- Briefly discuss how you avoided:
-- Label leakage
-- Data dependencies (e.g., temporal ordering)
-- Overfitting on test data
-- Other evaluation pitfalls discussed in class -->
+- **Label leakage:** We define "relevant" items using only ratings from the user's test period. No test set rating values are used at training time or to construct features.
+- **Data dependence / temporal ordering:** The chronological per-user split ensures that test ratings always come strictly after training ratings for each user, preventing future information from leaking into the training split.
+- **Overfitting on test set:** Hyperparameter and model selection decisions were not made by iterating over the test split. We made sure to only use the test split to report final results.
 
 ### Evaluation Results
 
-<!-- Include evaluation results or link to them. Example:
-- Metric value: ...
-- Baseline comparison: ...
-- Subpopulation analysis (if applicable): ... -->
+[TODO]
 
 ### Implementation Pointer
 
-<!-- Provide a link to the corresponding implementation in your code, e.g.:
-[`evaluation/offline_eval.py`](evaluation/offline_eval.py) -->
+[TODO]
 
 ---
 
 ## Online Evaluation
 
-*(1 page of text max, not counting figures)*
-
 ### Model Accuracy Metric
 
-<!-- 3-step description:
-1. The accuracy metric used in production (e.g., click-through rate, watch completion rate)
-2. Telemetry data collected (what events are logged, from which service, at what granularity)
-3. How the metric is computed from the telemetry data -->
+**Metric:** We use two online metrics computed over a rolling 7-day attribution window:
+- **Watch-through rate** — the fraction of recommended movie slots where the user actually watched the recommended movie within the 7 day period
+- **Positive-rating rate** — the fraction of recommended slots where the user rated the recommended movie ≥ 4.0 within the 7 day period
+
+Both measures were computed over the top-20 recommendations from each successful recommendation event.
+
+**Telemetry collected:** Three event types are used from raw production logs (`data/raw_logs/*.jsonl`), each transformed into a JSON line with the following fields:
+- `recommendation` events: `userid`, `timestamp`, `status` (HTTP status code), `recommendations` (list or comma-separated string of movie IDs)
+- `watch` events: `userid`, `timestamp`, `movieid`
+- `rating` events: `userid`, `timestamp`, `movieid`, `rating` (1–5 scale)
+
+Events are parsed by `pipeline/telemetry.py` into typed `TelemetryEvent` dataclass instances. Timestamps are normalized to UTC-aware `datetime` objects and accept Unix epoch integers, ISO-8601 strings, or freeform date strings.
+
+**Computation:** For each user, we chronologically align their recommendation events and downstream watch/rating events. For each successful recommendation event, we define a 7-day sliding window. A watch hit is counted when a watched `movieid` appears in the top-20 list and the watch timestamp falls within the window. A positive-rating hit is counted similarly, further requiring `rating ≥ 4.0`. The rate is: (total attributed hits) / (total recommended slots considered across all recommendation events). This is computed in `pipeline/online_eval.py` and written to `reports/online_eval.json`.
 
 ### Cost Metric
 
-<!-- 3-step description:
-1. The cost metric (movie licensing fees from the `cost` field + LLM token costs if applicable)
-2. Telemetry data collected (which fields, how logged)
-3. How the cost is aggregated/computed -->
+[TODO Ryan]
 
 ### Evaluation Results
 
-<!-- Include or link to online evaluation results:
-- Model accuracy metric value over the evaluation period: ...
-- Total/average licensing cost per recommendation: ...
-- LLM token cost (if applicable): ... -->
+[TODO]
 
 ### Implementation Pointer
 
-<!-- Link to the corresponding implementation, e.g.:
-[`evaluation/online_eval.py`](evaluation/online_eval.py)
-[`telemetry/collector.py`](telemetry/collector.py) -->
+- [`pipeline/online_eval.py`](group-project-s26-model-impossible-1/pipeline/online_eval.py) — accuracy proxy (watch-through rate, positive-rating rate)
+- [`pipeline/online_cost.py`](group-project-s26-model-impossible-1/pipeline/online_cost.py) — licensing cost attribution
+- [`pipeline/telemetry.py`](group-project-s26-model-impossible-1/pipeline/telemetry.py) — event parsing and normalization from raw log JSONL files
 
 ---
 
@@ -181,24 +183,3 @@ If credentials are required, note that mentor access has been granted. -->
 (b) State: "No update to team contract." -->
 
 No update to team contract.
-
----
-
-## Grading Checklist
-
-For reference — items to verify before submission:
-
-- [ ] 10pt: Commits are cohesive with reasonable messages; code is well structured.
-- [ ] 10pt: Report describes pipeline structure with implementation pointer.
-- [ ] 10pt: Data quality checks described and implemented for all external interfaces (Kafka, user/movie APIs, recommendation API).
-- [ ] 10pt: Offline evaluation strategy covers (1) validation/test split, (2) 3-step metric description, (3) justification and pitfall avoidance. Results included.
-- [ ] 10pt: Online model accuracy evaluation described in 3-step format with implementation pointer and results.
-- [ ] 10pt: Online cost evaluation described in 3-step format (licensing fees + LLM costs) with implementation pointer and results.
-- [ ] 10pt: Pipeline testing described, coverage report included/linked, adequacy argued.
-- [ ] 10pt: Infrastructure tests automated with CI, triggered on GitHub push, pointer provided.
-- [ ] 10pt: Team contract update or statement of no change included.
-- [ ] 10pt (individual): Debriefing meeting scheduled within one week of submission.
-- [ ] 3pt (individual): Teamwork survey filled out.
-- [ ] 5pt (bonus): Pull requests and code review used for majority of changes; process described with 3 examples.
-- [ ] 3pt (bonus): Social activity (see README).
-- [ ] 3pt (bonus): Going beyond the comfort zone (see README).
