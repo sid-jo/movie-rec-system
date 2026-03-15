@@ -1,0 +1,4 @@
+{"timestamp":"2026-03-01T00:00:00Z","userid":"1","raw":"2026-03-01T00:00:00Z,1,/rate/toy+story+1995=5","type":"rating","movieid":"toy+story+1995","rating":5}
+{"timestamp":"2026-03-01T00:01:00Z","userid":"1","raw":"2026-03-01T00:01:00Z,1,/data/m/toy+story+1995/10.mpg","type":"watch","movieid":"toy+story+1995","minute":10}
+{"timestamp":"2026-03-01T00:02:00Z","userid":"1","raw":"2026-03-01T00:02:00Z,1,recommendation request srv, status 200, result: [toy+story+1995,the+godfather+1972], 12ms","type":"recommendation","status":200,"recommendations":"toy+story+1995,the+godfather+1972"}
+{"timestamp":"2026-03-01T00:03:00Z","userid":"2","raw":"2026-03-01T00:03:00Z,2,create_account","type":"signup"}
