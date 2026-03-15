@@ -40,7 +40,6 @@ The NMF model clearly outperforms content-based (0.057 vs 0.014). The absolute v
 
 - Offline evaluation (NDCG@20, chronological split): [`pipeline/offline_eval.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/bruce/pipeline/offline_eval.py)
 - Model comparison (RMSE, latency, size): [`scripts/compare_models.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/compare_models.py)
-- Service-level offline evaluation (same NDCG@20 and per-user chronological split applied to the **served** recommender): [`scripts/offline_eval.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/offline_eval.py); results in [`models/artifacts/offline_eval.json`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/models/artifacts/offline_eval.json).
 
 ---
 
