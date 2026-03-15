@@ -1,14 +1,16 @@
 """Test recommend endpoint format: comma-separated movie IDs, up to 20, no userid in response."""
-import sys
 import os
-
-# Add project root
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import pytest
 
 from src.recommender import get_recommendations
 
 
 def test_recommend_format():
+    # Skip if metadata is missing in the repo checkout (CI can still run unit tests)
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if not os.path.exists(os.path.join(project_root, "metadata", "movies.json")):
+        pytest.skip("metadata/movies.json missing")
+
     recs = get_recommendations("70106")
     assert isinstance(recs, list)
     assert 1 <= len(recs) <= 20
@@ -23,6 +25,10 @@ def test_recommend_format():
 
 
 def test_different_users_different_recs():
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if not os.path.exists(os.path.join(project_root, "metadata", "movies.json")):
+        pytest.skip("metadata/movies.json missing")
+
     r1 = get_recommendations("70106")
     r2 = get_recommendations("999999")
     # At least some difference for personalization (10% requirement)
