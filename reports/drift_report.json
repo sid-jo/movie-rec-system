@@ -1,0 +1,82 @@
+{
+  "report_type": "drift_report",
+  "baseline_path": null,
+  "current": {
+    "window": {
+      "raw_logs_dir": "data/raw_logs",
+      "files": 3500,
+      "events": 34990483,
+      "parse_errors": 0
+    },
+    "schema_issues": {
+      "errors": [],
+      "warnings": [],
+      "error_count": 0,
+      "warning_count": 0
+    },
+    "metrics": {
+      "ratings": {
+        "count": 216548,
+        "mean": 7.234940983061493,
+        "hist": [
+          0.0,
+          0.13014008133755084,
+          0.2606087992441359,
+          0.08589738323131907,
+          0.5233537361869942
+        ],
+        "bins": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "recommendations": {
+        "count": 0,
+        "status_dist": {},
+        "len_hist": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "len_bins": [
+          0,
+          1,
+          5,
+          10,
+          15,
+          20,
+          21
+        ]
+      },
+      "cost": {
+        "count": 0,
+        "mean": 0.0,
+        "hist": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bins": [
+          0,
+          0.5,
+          1,
+          2,
+          5,
+          10,
+          1000
+        ]
+      }
+    }
+  },
+  "comparison": null
+}

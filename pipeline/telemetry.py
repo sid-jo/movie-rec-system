@@ -55,6 +55,23 @@ def _parse_recs(recs: Any) -> list[str] | None:
     return None
 
 
+def parsed_dict_to_event(obj: dict[str, Any]) -> TelemetryEvent | None:
+    """Build a TelemetryEvent from a parsed Kafka/log dict (e.g. from kafka_parsing.parse_log_entry)."""
+    t = obj.get("type")
+    uid = obj.get("userid")
+    if t is None or uid is None:
+        return None
+    return TelemetryEvent(
+        type=str(t),
+        user_id=str(uid),
+        ts=parse_timestamp(obj.get("timestamp")),
+        movie_id=str(obj["movieid"]) if obj.get("movieid") is not None else None,
+        rating=float(obj["rating"]) if obj.get("rating") is not None and isinstance(obj.get("rating"), (int, float)) else None,
+        status=int(obj["status"]) if isinstance(obj.get("status"), int) else None,
+        recommendations=_parse_recs(obj.get("recommendations")),
+    )
+
+
 def load_events(raw_logs_dir: str, max_events: int | None = None) -> list[TelemetryEvent]:
     import glob
 

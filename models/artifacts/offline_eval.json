@@ -1,0 +1,28 @@
+{
+  "evaluation_type": "offline",
+  "model": {
+    "name": "served_recommender",
+    "artifacts_dir": "models/artifacts"
+  },
+  "metric": {
+    "name": "ndcg@20",
+    "k": 20,
+    "rating_threshold": 4.0
+  },
+  "data_split": {
+    "type": "per_user_chronological",
+    "test_ratio": 0.2
+  },
+  "results": {
+    "ndcg_mean": 0.020059897417956753,
+    "users_evaluated": 20289,
+    "users_skipped_no_relevant": 542
+  },
+  "dataset": {
+    "num_ratings": 216548,
+    "num_users": 20831,
+    "num_movies": 8116,
+    "train_ratings": 178293,
+    "test_ratings": 38255
+  }
+}
