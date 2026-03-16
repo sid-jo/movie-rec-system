@@ -27,6 +27,16 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-cov
 
+      - name: Create minimal metadata if missing
+        run: |
+          mkdir -p metadata
+          if [ ! -f metadata/movies.json ]; then
+            echo '{"m1":{"id":"m1","title":"Movie One"},"the+shawshank+redemption+1994":{"id":"the+shawshank+redemption+1994","title":"Shawshank"}}' > metadata/movies.json
+          fi
+          if [ ! -f metadata/users.json ]; then
+            echo '{"u1":{"userid":"u1"},"70106":{"userid":"70106"}}' > metadata/users.json
+          fi
+
       - name: Run tests with coverage
         run: |
           pytest --maxfail=3 --disable-warnings -q \

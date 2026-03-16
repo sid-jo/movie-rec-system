@@ -3,11 +3,12 @@ Movie Recommendation API - Milestone 1
 Serves recommendations at /recommend/<userid>
 Returns comma-separated list of up to 20 movie IDs (single line).
 """
-from flask import Flask
+from flask import Flask, abort
 import requests
 
 from src.recommender import get_recommendations
 from src.clients import CourseApiClient
+from src.data_quality import validate_recommendation_request
 
 app = Flask(__name__)
 
@@ -30,6 +31,11 @@ def home():
 
 @app.route("/recommend/<userid>")
 def recommend(userid):
+    # Schema validation: reject invalid user IDs (data quality - M2)
+    validation = validate_recommendation_request(userid)
+    if not validation["valid"]:
+        abort(400, "Invalid userid")
+
     user_data = None
     try:
         client = create_course_api_client()
