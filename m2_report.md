@@ -38,7 +38,7 @@ The NMF model clearly outperforms content-based (0.057 vs 0.014). The absolute v
 
 ### Implementation Pointer
 
-- Offline evaluation (NDCG@20, chronological split): [`pipeline/offline_eval.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/bruce/pipeline/offline_eval.py)
+- Offline evaluation (NDCG@20, chronological split): [`scripts/offline_eval.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/offline_eval.py)
 - Model comparison (RMSE, latency, size): [`scripts/compare_models.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/compare_models.py)
 
 ---
@@ -143,7 +143,7 @@ The pipeline is split into independent modules that can be run on their own or e
 2. **Metadata collection:** `scripts/fetch_metadata.py` fetches user and movie metadata from the external APIs (`http://128.2.220.241:8080`) and saves them as `metadata/users.json` and `metadata/movies.json`.
 3. **Data preparation:** `notebooks/data_prep.py` processes raw JSONL log files into clean CSVs (`data/processed/ratings.csv`, `watches.csv`, `recommendations.csv`, `signups.csv`).
 4. **Model training:** `scripts/train.py` trains the NMF collaborative filtering model and the popularity-based model, saving artifacts to `models/artifacts/` (`.joblib` files + `training_metadata.json`).
-5. **Offline evaluation:** `pipeline/offline_eval.py` loads the serving artifacts, performs the chronological split, and computes NDCG@20. `scripts/compare_models.py` compares RMSE, latency, and size.
+5. **Offline evaluation:** `scripts/offline_eval.py` loads the serving artifacts, performs the chronological split, and computes NDCG@20. `scripts/compare_models.py` compares RMSE, latency, and size.
 6. **Serving:** `src/app.py` (Flask) serves predictions at `GET /recommend/<userid>`. `src/recommender.py` implements the recommendation logic: cold-start → NMF → popularity → fallback.
 7. **Data quality:** `src/data_quality.py` provides schema validation and drift detection for all data interfaces.
 8. **Online evaluation:** `scripts/online_eval.py` computes WTR and cost metrics from the live Kafka stream.
