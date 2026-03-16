@@ -164,3 +164,22 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# --- Offline eval entry point (writes evaluation_results.json) ---
+def run_offline_eval_and_save():
+    """Run evaluation and save to evaluation_results.json."""
+    acc = metric_accuracy()
+    tc = metric_training_cost()
+    inf = metric_inference_cost()
+    sz = metric_model_size()
+    results = {
+        "accuracy_rmse": acc,
+        "training_cost": tc,
+        "inference_cost": inf,
+        "model_size_mb": sz,
+    }
+    out_path = os.path.join(PROJECT_ROOT, "evaluation_results.json")
+    with open(out_path, "w") as f:
+        json.dump(results, f, indent=2)
+    return out_path

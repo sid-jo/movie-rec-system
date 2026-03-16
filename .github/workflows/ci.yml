@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, sai]
+  pull_request:
+    branches: [main, master, sai]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pytest pytest-cov
+
+      - name: Create minimal metadata if missing
+        run: |
+          mkdir -p metadata
+          if [ ! -f metadata/movies.json ]; then
+            echo '{"m1":{"id":"m1","title":"Movie One"},"the+shawshank+redemption+1994":{"id":"the+shawshank+redemption+1994","title":"Shawshank"}}' > metadata/movies.json
+          fi
+          if [ ! -f metadata/users.json ]; then
+            echo '{"u1":{"userid":"u1"}}' > metadata/users.json
+          fi
+
+      - name: Run tests
+        run: |
+          pytest tests/ -v --cov=pipeline --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=50
+        continue-on-error: false
