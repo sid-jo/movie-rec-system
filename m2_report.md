@@ -225,3 +225,6 @@ Integration tests are skipped automatically via the `CI=true` env variable. We d
 ## Team Contract Update
 
 No update to team contract.
+
+### M2 work division (who / what / when)
+- **Meeting notes (who / what / when):** [Meeting Notes](https://docs.google.com/document/d/1xYdYoa4klIVVYAxXRys2Vk8RwFHtYLldRd1g3595-I4/edit?usp=sharing) linked here
