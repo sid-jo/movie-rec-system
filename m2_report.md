@@ -219,6 +219,8 @@ Integration tests are skipped automatically via the `CI=true` env variable. We d
 
 **Example pull requests:**
 1. [PR #1: Merge Sai Changes](https://github.com/cmu-seai/group-project-s26-model-impossible-1/pull/1) — integrated teammate's model training and data pipeline contributions into main.
+2. [Bruce's PR](https://github.com/cmu-seai/group-project-s26-model-impossible-1/pull/2) — Pipeline entrypoints, offline eval, CI fix, and report alignment 
+3. [Phase 2 rubric fixes: report pointer, app validation, CI metadata](https://github.com/cmu-seai/group-project-s26-model-impossible-1/pull/3) — Deployment verification and second-set-of-eyes testing
 
 ---
 
