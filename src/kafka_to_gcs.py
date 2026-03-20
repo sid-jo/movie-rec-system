@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 import json
-import re
 from datetime import datetime
 from kafka import KafkaConsumer
 from google.cloud import storage
 from io import StringIO
 import time
+from src.kafka_parsing import parse_log_entry
 
 # GCS setup
 storage_client = storage.Client()
@@ -24,54 +24,6 @@ consumer = KafkaConsumer(
     group_id='team2-gcs-collector',
     value_deserializer=lambda x: x.decode('utf-8')
 )
-
-def parse_log_entry(log_line):
-    """Parse different types of log entries"""
-    parts = log_line.split(',', 2)
-    if len(parts) < 3:
-        return None
-    
-    timestamp = parts[0]
-    userid = parts[1]
-    action = parts[2]
-    
-    entry = {
-        'timestamp': timestamp,
-        'userid': userid,
-        'raw': log_line
-    }
-    
-    # Recommendation request
-    if 'recommendation request' in action:
-        match = re.search(r'status (\d+)', action)
-        if match:
-            entry['type'] = 'recommendation'
-            entry['status'] = int(match.group(1))
-            result_match = re.search(r'result: \[(.*?)\]', action)
-            if result_match:
-                entry['recommendations'] = result_match.group(1)
-    
-    # Movie watching
-    elif '/data/m/' in action:
-        match = re.search(r'/data/m/([^/]+)/(\d+)\.mpg', action)
-        if match:
-            entry['type'] = 'watch'
-            entry['movieid'] = match.group(1)
-            entry['minute'] = int(match.group(2))
-    
-    # Rating
-    elif '/rate/' in action:
-        match = re.search(r'/rate/(.+)=(\d+)', action)
-        if match:
-            entry['type'] = 'rating'
-            entry['movieid'] = match.group(1)
-            entry['rating'] = int(match.group(2))
-    
-    # New account
-    elif 'create_account' in action:
-        entry['type'] = 'signup'
-    
-    return entry
 
 def upload_to_gcs(buffer, file_counter):
     """Upload buffer to GCS"""

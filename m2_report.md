@@ -5,27 +5,27 @@
 
 ### Validation/Test Data
 
-The source data is in `data/processed/ratings.csv`, derived from the production Kafka stream. Each row is a user–movie rating event (1–5 stars) with a timestamp. The dataset contains roughly 210,000 ratings across approximately 1,000,000 users and 20,000 movies.
+Our data are in `data/processed/ratings.csv`, pulled from the production Kafka stream. Each row is a user–movie rating event on a 1–5 scale with a timestamp. The full dataset has roughly 210,000 ratings.
 
-We apply a **per-user chronological split**: for each user, all rating events are sorted by timestamp and the most recent 20% are held out as the test set, with the remaining 80% forming the training set. This produces a test set of ~42,000 ratings. Splitting within each user (rather than globally by time) ensures every user has at least one test rating.
+For the split, we go **per user, chronologically**: for each user we sort their ratings by timestamp and hold out the most recent 20% as the test set, with the remaining 80% for training (~42,000 test ratings). We do it this way rather than a global time cutoff because a global split would leave some users with no test data at all, and a random shuffle would leak future ratings into training.
 
 ### Accuracy Metric
 
-**The measure:** For each user in the test set, we measure how well the served recommender ranks movies that the user actually liked (rated ≥ 4.0 out of 5) in their held-out period. Specifically, we measure whether liked movies appear early in a top-20 recommendation list.
+**What we're measuring:** For each user, we check how well our recommender ranks the movies they actually liked (rated ≥ 4.0 out of 5) in their held-out period, specifically whether those movies show up near the top of the 20-item recommendation list.
 
-**Operationalization with NDCG@20:** We compute the normalized discounted cumulative gain at rank 20. For each user, the relevant set is the collection of movies they rated ≥ 4.0 in their test split. DCG is computed as:
+**Operationalization (NDCG@20):** We use Normalized Discounted Cumulative Gain at k=20. For each user, the "relevant" set is the movies they rated ≥ 4.0 in their test split. DCG is:
 
 $$\sum_{i=1}^{20} \frac{\mathbf{1}[\text{rec}_i \in \text{relevant}]}{\log_2(i+2)}$$
 
-IDCG is the maximum possible DCG given the number of relevant items. NDCG@20 = DCG / IDCG, normalized to [0, 1]. The final reported metric is the mean NDCG@20 across all evaluated users. We skipped users with no relevant test items and count them separately.
+We divide by the ideal DCG (IDCG) to normalize to [0, 1], then average across all evaluated users. Users with no liked items in their test split are skipped and counted separately.
 
-**Justification:** NDCG@20 is a good choice for this problem primarily because our service returns exactly 20 recommendations per request, so $k = 20$ directly matches the output contract. Additionally, it rewards placing liked movies higher in the ranking and normalizes for users with different numbers of liked movies, giving us a standardized measure when comparing across users.
+**Why this metric:** We serve exactly 20 recommendations per request, so k=20 directly matches what users actually see. NDCG rewards placing liked movies higher in the list rather than treating all positions equally, and normalizing means users with very different numbers of liked movies are still comparable.
 
 ### Avoiding Common Pitfalls
 
-- **Label leakage:** We define "relevant" items using only ratings from the user's test period. No test set rating values are used at training time or to construct features.
-- **Data dependence / temporal ordering:** The chronological per-user split ensures that test ratings always come strictly after training ratings for each user, preventing future information from leaking into the training split.
-- **Overfitting on test set:** Hyperparameter and model selection decisions were not made by iterating over the test split. We made sure to only use the test split to report final results.
+- **Label leakage:** Relevant items are defined only from test-split ratings — no test values are used at training time or to build features.
+- **Temporal ordering:** The per-user chronological split means test ratings always come after training ratings for each user. A random split would let future likes leak into training.
+- **Overfitting on the test set:** We fixed the metric and threshold (NDCG@20, rating ≥ 4.0) before looking at test results and only used the test split to report final numbers.
 
 ### Evaluation Results
 
@@ -34,11 +34,11 @@ IDCG is the maximum possible DCG given the number of relevant items. NDCG@20 = D
 | NMF (Collaborative Filtering) | 0.0568 | 18.82s | 23.05 ms | 4,307 MB |
 | Content-Based (Genre) | 0.0137 | 13.79s | 85.10 ms | 3.97 MB |
 
-The NMF model significantly outperforms the content-based model on NDCG@20 (0.057 vs 0.014), confirming that collaborative signals provide stronger personalization. Full results are stored in [`models/artifacts/evaluation_results.json`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/models/artifacts/evaluation_results.json).
+The NMF model clearly outperforms content-based (0.057 vs 0.014). The absolute values are low, which is expected given how sparse the rating matrix is and the fact that cold-start users fall back to popularity-based recommendations entirely. Full results: [`models/artifacts/evaluation_results.json`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/models/artifacts/evaluation_results.json).
 
 ### Implementation Pointer
 
-- Offline evaluation (NDCG@20, chronological split): [`models/evaluate.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/models/evaluate.py)
+- Offline evaluation (NDCG@20, chronological split): [`scripts/offline_eval.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/offline_eval.py)
 - Model comparison (RMSE, latency, size): [`scripts/compare_models.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/compare_models.py)
 
 ---
@@ -47,28 +47,26 @@ The NMF model significantly outperforms the content-based model on NDCG@20 (0.05
 
 ### Model Accuracy Metric
 
-**Metric:** We use two online metrics computed over a rolling 7-day attribution window:
-- **Watch-through rate** — the fraction of recommended movie slots where the user actually watched the recommended movie within the 7 day period
-- **Positive-rating rate** — the fraction of recommended slots where the user rated the recommended movie ≥ 4.0 within the 7 day period
+**Metric:** We track two proxy metrics with a 7-day attribution window:
+- **Watch-through rate** — out of all movies we recommended (top-20 per request), what fraction did the user actually watch within 7 days?
+- **Positive-rating rate** — same, but the user also had to rate that movie ≥ 4.0
 
-Both measures were computed over the top-20 recommendations from each successful recommendation event.
+Both are computed over successful recommendation events only (HTTP 200).
 
-**Telemetry collected:** Three event types are consumed in real time from the Kafka `movielog2` stream via `KafkaConsumer`, each parsed from the raw CSV format (`timestamp,userid,action`):
-- `recommendation` events: `userid`, `timestamp`, `status` (HTTP status code), `recommendations` (comma-separated string of movie IDs)
-- `watch` events: `userid`, `timestamp`, `movieid`, `minute`
-- `rating` events: `userid`, `timestamp`, `movieid`, `rating` (1–5 scale)
+**Telemetry collected:** We consume three event types from the live Kafka `movielog2` topic, parsed from the raw CSV format (`timestamp,userid,action`) by `parse_kafka_line()` in `scripts/online_eval.py`:
+- `recommendation` events: userid, timestamp, HTTP status, comma-separated list of recommended movie IDs
+- `watch` events: userid, timestamp, movieid
+- `rating` events: userid, timestamp, movieid, rating (1–5)
 
-Events are parsed by `parse_kafka_line()` in `scripts/online_eval.py`. Timestamps are extracted directly from the Kafka log line.
-
-**Computation:** For each user, we chronologically align their recommendation events and downstream watch/rating events. For each successful recommendation event, we define a 7-day sliding window. A watch hit is counted when a watched `movieid` appears in the top-20 list and the watch timestamp falls within the window. A positive-rating hit is counted similarly, further requiring `rating ≥ 4.0`. The rate is: (total attributed hits) / (total recommended slots considered across all recommendation events). The script reports metrics at configurable intervals and writes final results to `models/artifacts/online_eval_results.json`.
+**Computation:** For each user, we align their recommendation events with any downstream watch/rating events. For each successful recommendation, we open a 7-day window. A watch hit is when the user watches a recommended movie within the window. A positive-rating hit additionally requires `rating ≥ 4.0`. Final metric: (total hits) / (total recommended slots across all recommendation events). Results are written to `models/artifacts/online_eval_results.json`.
 
 ### Cost Metric
 
-**Metric:** Total system cost in USD, comprising (a) movie licensing fees — the per-view cost paid to the license holder each time a user watches a movie (from the `license_cost` field in the movie metadata JSON), and (b) LLM token costs for any external language model API calls. We report both the platform-wide total and the recommendation-attributed cost (only movies that were recommended by our model *and* subsequently watched).
+**Metric:** Total USD cost broken into two parts: (a) movie licensing fees — the per-view cost from the `cost` field in `metadata/movies.json` — and (b) LLM token costs (currently $0, we don't use an external LLM). We report both the platform-wide total and the recommendation-attributed portion (only movies we recommended that the user then actually watched).
 
-**Telemetry collected:** Watch events from the Kafka stream (userid, movieid) and recommendation events (userid, movie list) are joined with the movie metadata (`metadata/movies.json`) which includes a `license_cost` field (USD per view). LLM token usage is tracked per API call (currently $0.00 as our pipeline does not use an external LLM).
+**Telemetry collected:** Watch events and recommendation events from the same Kafka stream, joined with `metadata/movies.json` which has a `cost` field (USD per view) for each movie.
 
-**Operationalization:** For each watch event consumed from Kafka, we look up the movie's `license_cost` in the metadata and sum across all views to get the platform-wide licensing cost. To compute recommendation-attributed cost, we intersect each user's recommended movie list with their watched movies and sum only the license costs for those matched views. Per-recommendation-request cost = attributed_license_cost / total_recommendation_events. LLM costs are summed from any API call logs (currently $0). `Total cost = total_license_cost + llm_token_cost`.
+**Computation:** For each watch event, we look up the movie's `cost` and add it to the platform-wide total. For the attributed cost, we only count watches where the movie appeared in that user's most recent recommendation list within a 7-day window. Per-request cost = attributed cost / total recommendation events. LLM costs are tracked separately and are currently $0.
 
 ### Evaluation Results
 
@@ -98,7 +96,7 @@ Results are saved to [`models/artifacts/online_eval_results.json`](https://githu
 | Avg per-view license cost | $0.2111 |
 | LLM token cost | $0.00 (no LLM used) |
 
-The recommendation-attributed cost isolates only the license fees for movies that our model recommended *and* the user subsequently watched. The platform-wide total ($80K) reflects all views across ~51K users during the window, most of which are independent of our recommendations. The per-recommendation-request cost of $0.03 represents the actual licensing burden attributable to our model. The low positive-rating rate reflects the short 5-minute real-time window (`auto_offset_reset=latest`); users have not yet rated new recommendations within this timeframe.
+The $80K platform-wide total covers all views across ~51K users in the window, most of which have nothing to do with our recommendations. The $109 attributed cost is the portion we can actually tie to our model. The positive-rating rate being 0% makes sense for a short 5-minute window with `auto_offset_reset=latest` — users haven't had time to rate freshly recommended movies yet.
 
 ### Implementation Pointer
 
@@ -139,13 +137,13 @@ Reference distributions are set from historical data, and the detector processes
 
 ### Pipeline Structure
 
-The pipeline is organized into independent, reusable modules that can be run separately or end-to-end:
+The pipeline is split into independent modules that can be run on their own or end-to-end:
 
 1. **Data ingestion:** `src/kafka_collector.py` consumes live events from the Kafka `movielog2` topic, parses each log line (rating, watch, recommendation, signup), and writes raw JSONL files. `scripts/run_kafka_ingest.py` downloads historical logs from GCS.
 2. **Metadata collection:** `scripts/fetch_metadata.py` fetches user and movie metadata from the external APIs (`http://128.2.220.241:8080`) and saves them as `metadata/users.json` and `metadata/movies.json`.
 3. **Data preparation:** `notebooks/data_prep.py` processes raw JSONL log files into clean CSVs (`data/processed/ratings.csv`, `watches.csv`, `recommendations.csv`, `signups.csv`).
 4. **Model training:** `scripts/train.py` trains the NMF collaborative filtering model and the popularity-based model, saving artifacts to `models/artifacts/` (`.joblib` files + `training_metadata.json`).
-5. **Offline evaluation:** `models/evaluate.py` loads models and test data, performs chronological train/test split, and computes NDCG@20. `scripts/compare_models.py` compares RMSE, latency, and size.
+5. **Offline evaluation:** `scripts/offline_eval.py` loads the serving artifacts, performs the chronological split, and computes NDCG@20. `scripts/compare_models.py` compares RMSE, latency, and size.
 6. **Serving:** `src/app.py` (Flask) serves predictions at `GET /recommend/<userid>`. `src/recommender.py` implements the recommendation logic: cold-start → NMF → popularity → fallback.
 7. **Data quality:** `src/data_quality.py` provides schema validation and drift detection for all data interfaces.
 8. **Online evaluation:** `scripts/online_eval.py` computes WTR and cost metrics from the live Kafka stream.
@@ -154,7 +152,7 @@ Intermediate data is stored as CSV files in `data/processed/` and model artifact
 
 ### Testing Approach
 
-We use **pytest** with tests organized across four test modules:
+We use pytest with tests split across four modules:
 
 | Test Module | Tests | What It Covers |
 |-------------|-------|----------------|
@@ -163,7 +161,7 @@ We use **pytest** with tests organized across four test modules:
 | `tests/test_online_eval.py` | 24 | Kafka line parsing, WTR + positive-rating rate computation, cost metrics (attributed + platform-wide), edge cases |
 | `tests/test_recommend.py` | 2 | Recommendation format (comma-separated, ≤20 IDs) and personalization |
 
-Tests use **small synthetic data** rather than full production datasets. For the recommender tests, we rely on the actual model artifacts loaded lazily. For online evaluation and data quality tests, we construct minimal dicts and lists inline to test specific behaviors. Integration tests for Kafka, GCS, and external APIs are **skipped in CI** (marked with `pytest.skip` when `CI=true`) since they require network access to external services.
+Tests use small synthetic data rather than full production datasets. For the recommender tests we load the actual model artifacts lazily; for online eval and data quality tests we just inline minimal dicts and lists to test specific behaviors. Integration tests (Kafka, GCS, external APIs) are skipped in CI via `pytest.skip` when `CI=true` since they need network access.
 
 ### Coverage Report
 
@@ -177,11 +175,11 @@ scripts/online_eval.py       196    110     44%
 Overall (src + scripts)     1221    929     24%
 ```
 
-Core modules under test have strong coverage. The lower overall figure reflects untested utility scripts (`fetch_metadata.py`, `run_kafka_ingest.py`, etc.) that are run manually and depend on external services.
+The core modules have solid coverage. The low overall figure is mostly due to utility scripts (`fetch_metadata.py`, `run_kafka_ingest.py`, etc.) that are run manually on the VM and depend on external services — not worth unit testing.
 
 ### Adequacy Argument
 
-Our testing focuses on critical and failure-prone components: (1) **data parsing** — the Kafka log parser is the entry point for all production data and is tested with valid, malformed, and edge-case inputs; (2) **data quality** — every external interface has schema validation tests covering both valid and invalid inputs; (3) **recommender logic** — all code paths (cold start, NMF, popularity, fallback) are exercised, and output format is verified; (4) **metric computation** — online accuracy and cost metrics are tested with known inputs/outputs. Components that are not unit-tested (e.g., GCS upload, Kafka connectivity) are integration-tested separately when running on the VM and are skipped in CI.
+We focused testing on the parts most likely to break: (1) **Kafka parsing** — it's the entry point for all production data, so we test it with valid, malformed, and edge-case inputs; (2) **data quality** — every external interface has tests for both valid and invalid inputs; (3) **recommender logic** — all code paths (cold start, NMF, popularity, fallback) are covered and output format is verified; (4) **metric computation** — online accuracy and cost are tested against known inputs/outputs. GCS and Kafka connectivity aren't unit-tested but are covered by integration tests run on the VM.
 
 ### Implementation Pointer
 
@@ -199,14 +197,14 @@ We use **GitHub Actions** as our CI platform. The workflow is defined in [`.gith
 
 ### What Is Automated
 
-On every push or pull request to `main`, the CI pipeline automatically:
+Every push or pull request to `main` automatically:
 
-1. Checks out the repository.
-2. Sets up Python 3.10 and installs all dependencies from `requirements.txt` plus `pytest` and `pytest-cov`.
-3. Runs the full test suite (`pytest`) with coverage measurement for `src/` and `scripts/`.
-4. Generates and uploads an HTML coverage report as a build artifact.
+1. Checks out the repo
+2. Sets up Python 3.10 and installs `requirements.txt` + `pytest` + `pytest-cov`
+3. Runs the full test suite with coverage over `src/` and `scripts/`
+4. Uploads an HTML coverage report as a build artifact
 
-Integration tests that require external services (Kafka, GCS, external APIs) are automatically skipped in CI via the `CI=true` environment variable. Model training is **not** triggered by CI — it is run manually when needed.
+Integration tests are skipped automatically via the `CI=true` env variable. We don't trigger model training from CI — that's run manually on the VM when needed.
 
 ### CI Service Pointer
 
@@ -221,9 +219,14 @@ Integration tests that require external services (Kafka, GCS, external APIs) are
 
 **Example pull requests:**
 1. [PR #1: Merge Sai Changes](https://github.com/cmu-seai/group-project-s26-model-impossible-1/pull/1) — integrated teammate's model training and data pipeline contributions into main.
+2. [Bruce's PR](https://github.com/cmu-seai/group-project-s26-model-impossible-1/pull/2) — Pipeline entrypoints, offline eval, CI fix, and report alignment 
+3. [Phase 2 rubric fixes: report pointer, app validation, CI metadata](https://github.com/cmu-seai/group-project-s26-model-impossible-1/pull/3) — Deployment verification and second-set-of-eyes testing
 
 ---
 
 ## Team Contract Update
 
 No update to team contract.
+
+### M2 work division (who / what / when)
+- **Meeting notes (who / what / when):** [Meeting Notes](https://docs.google.com/document/d/1xYdYoa4klIVVYAxXRys2Vk8RwFHtYLldRd1g3595-I4/edit?usp=sharing) linked here
