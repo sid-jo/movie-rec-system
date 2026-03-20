@@ -51,6 +51,24 @@ def _extract_movies_from_description(text, title_to_id):
     return list(dict.fromkeys(found))[:20]
 
 
+def get_model_type(user_id, user_data=None, force_popularity=False):
+    """Return which model path would be used for this user (without computing recs)."""
+    _load_artifacts()
+    user_id_str = str(user_id)
+    if user_data and _cold_start and not force_popularity:
+        title_to_id = _cold_start.get("title_to_id", {})
+        likes = user_data.get("self_description_likes") or ""
+        liked_ids = _extract_movies_from_description(likes, title_to_id)
+        if liked_ids:
+            return "cold_start"
+    if _nmf and not force_popularity:
+        if user_id_str in _nmf.get("user_id_to_idx", {}):
+            return "nmf"
+    if _top_movies:
+        return "popularity"
+    return "fallback"
+
+
 def get_recommendations(user_id, user_data=None, force_popularity=False):
     """
     Return up to 20 movie IDs (list) for the user.
