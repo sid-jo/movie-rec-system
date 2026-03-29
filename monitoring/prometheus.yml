@@ -1,0 +1,27 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alerts.yml"
+
+scrape_configs:
+  # Flask recommendation service (request-level metrics)
+  # On VM (Linux): use 172.17.0.1 (Docker bridge gateway to host)
+  # On macOS: use host.docker.internal
+  - job_name: "recommendation-service"
+    static_configs:
+      - targets: ["host.docker.internal:8085", "172.17.0.1:8085"]
+    metrics_path: "/metrics"
+    scrape_interval: 10s
+
+  # Kafka-based online metrics exporter (accuracy, cost, drift)
+  - job_name: "metrics-exporter"
+    static_configs:
+      - targets: ["host.docker.internal:8086", "172.17.0.1:8086"]
+    scrape_interval: 15s
+
+  # Prometheus self-monitoring
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

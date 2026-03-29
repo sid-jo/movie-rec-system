@@ -1,0 +1,180 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Service Availability",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "title": "Service Up",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "targets": [{ "expr": "up{job=\"recommendation-service\"}", "legendFormat": "Service Up" }],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      }
+    },
+    {
+      "title": "Rec Events / min (Kafka)",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "targets": [{ "expr": "online_rec_rate_per_minute", "legendFormat": "Recs/min" }],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0, "max": 100,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 5 }, { "color": "green", "value": 15 }] }
+        }
+      }
+    },
+    {
+      "title": "Request Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 1 },
+      "targets": [
+        { "expr": "rate(recommendation_requests_total[5m])", "legendFormat": "{{status}} / {{model_type}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "reqps" } }
+    },
+    {
+      "title": "Request Latency (p50 / p95 / p99)",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 1 },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, rate(recommendation_latency_seconds_bucket[5m]))", "legendFormat": "p50" },
+        { "expr": "histogram_quantile(0.95, rate(recommendation_latency_seconds_bucket[5m]))", "legendFormat": "p95" },
+        { "expr": "histogram_quantile(0.99, rate(recommendation_latency_seconds_bucket[5m]))", "legendFormat": "p99" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "title": "Uptime (24h)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 5 },
+      "targets": [{ "expr": "avg_over_time(up{job=\"recommendation-service\"}[24h]) * 100", "legendFormat": "Uptime %" }],
+      "fieldConfig": { "defaults": { "unit": "percent", "decimals": 2, "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 90 }, { "color": "green", "value": 99 }] } } }
+    },
+    {
+      "title": "Error Rate",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 5 },
+      "targets": [{ "expr": "rate(recommendation_errors_total[5m])", "legendFormat": "Errors/s" }],
+      "fieldConfig": { "defaults": { "unit": "reqps", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 0.01 }] } } }
+    },
+    {
+      "title": "Model Accuracy",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "collapsed": false
+    },
+    {
+      "title": "Watch-Through Rate (WTR)",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 10 },
+      "targets": [{ "expr": "online_watch_through_rate", "legendFormat": "WTR" }],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 4 } }
+    },
+    {
+      "title": "Positive-Rating Rate (PRR)",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 10 },
+      "targets": [{ "expr": "online_positive_rating_rate", "legendFormat": "PRR" }],
+      "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 4 } }
+    },
+    {
+      "title": "Model Distribution",
+      "type": "piechart",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 10 },
+      "targets": [
+        { "expr": "sum by (model_type) (recommendation_requests_total)", "legendFormat": "{{model_type}}" }
+      ]
+    },
+    {
+      "title": "Operating Cost",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 },
+      "collapsed": false
+    },
+    {
+      "title": "Total License Cost (USD)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 17 },
+      "targets": [{ "expr": "online_license_cost_usd_total", "legendFormat": "Total" }],
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 2 } }
+    },
+    {
+      "title": "Rec-Attributed Cost (USD)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 17 },
+      "targets": [{ "expr": "online_rec_attributed_cost_usd_total", "legendFormat": "Attributed" }],
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 2 } }
+    },
+    {
+      "title": "License Cost Rate (USD/min)",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 17 },
+      "targets": [
+        { "expr": "rate(online_license_cost_usd_total[5m]) * 60", "legendFormat": "Platform $/min" },
+        { "expr": "rate(online_rec_attributed_cost_usd_total[5m]) * 60", "legendFormat": "Attributed $/min" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "currencyUSD" } }
+    },
+    {
+      "title": "Data Drift",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "collapsed": false
+    },
+    {
+      "title": "Rating Mean (rolling)",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 24 },
+      "targets": [{ "expr": "drift_rating_mean", "legendFormat": "Rating Mean" }],
+      "fieldConfig": { "defaults": { "decimals": 2 } }
+    },
+    {
+      "title": "Watch Duration Mean (rolling)",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 24 },
+      "targets": [{ "expr": "drift_watch_duration_mean", "legendFormat": "Watch Min Mean" }],
+      "fieldConfig": { "defaults": { "unit": "m", "decimals": 1 } }
+    },
+    {
+      "title": "Drift Alerts",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 24 },
+      "targets": [
+        { "expr": "drift_rating_shift_detected", "legendFormat": "Rating Drift" },
+        { "expr": "drift_watch_duration_shift_detected", "legendFormat": "Watch Drift" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "Normal", "color": "green" }, "1": { "text": "DRIFT", "color": "red" } } }
+          ]
+        }
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["recommendation", "monitoring", "mlip"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Recommendation Service Dashboard",
+  "uid": "rec-service-dashboard",
+  "version": 1
+}

@@ -1,0 +1,15 @@
+# Recommendation service cron jobs
+# Install with: crontab scripts/crontab.txt
+#
+# NOTE: Adjust PROJECT_ROOT to match your VM path.
+
+PROJECT_ROOT=/home/team2/group-project-s26-model-impossible-1
+
+# Retrain models every 3 days at 2:00 AM UTC
+0 2 */3 * * cd $PROJECT_ROOT && bash scripts/retrain_and_deploy.sh --skip-pull >> logs/cron_retrain.log 2>&1
+
+# Cold-start updater: run every 30 minutes, collect signups for 5 minutes
+*/30 * * * * cd $PROJECT_ROOT && python3 scripts/update_cold_start.py --mode oneshot --duration 300 >> logs/cron_cold_start.log 2>&1
+
+# Health check: ping service every 5 minutes, restart if down
+*/5 * * * * curl -sf http://localhost:8082/health > /dev/null || (cd $PROJECT_ROOT && bash scripts/restart_service.sh >> logs/cron_restart.log 2>&1)
