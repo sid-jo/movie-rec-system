@@ -10,7 +10,9 @@ def test_transform_writes_expected_csvs(tmp_path):
     out_dir = tmp_path / "processed"
     raw_dir.mkdir()
 
-    fixture_path = os.path.join(os.path.dirname(__file__), "fixtures", "sample_raw_logs.jsonl")
+    fixture_path = os.path.join(
+        os.path.dirname(__file__), "fixtures", "sample_raw_logs.jsonl"
+    )
     with open(fixture_path) as f:
         (raw_dir / "sample.jsonl").write_text(f.read())
 
@@ -29,4 +31,3 @@ def test_transform_writes_expected_csvs(tmp_path):
     assert len(recs) == 1
     assert "recommendations" in recs.columns
     assert len(signups) == 1
-
