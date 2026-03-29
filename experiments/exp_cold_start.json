@@ -1,0 +1,22 @@
+{
+  "id": "exp_cold_start",
+  "name": "Cold-Start Self-Description Impact",
+  "description": "Measures the impact of using users' self-described likes/dislikes for cold-start recommendations vs. falling back to popularity/NMF only.",
+  "status": "active",
+  "created_at": "2026-03-29T00:00:00Z",
+  "started_at": "2026-03-29T00:00:00Z",
+  "variants": [
+    {
+      "name": "control",
+      "description": "Standard path: cold-start uses self_description_likes/dislikes when available",
+      "traffic_pct": 0.5,
+      "model_params": {"cold_start_enabled": true}
+    },
+    {
+      "name": "no_cold_start",
+      "description": "Treatment: skip self-description analysis, fall back to NMF or popularity only",
+      "traffic_pct": 0.5,
+      "model_params": {"cold_start_enabled": false}
+    }
+  ]
+}
