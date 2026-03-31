@@ -5,9 +5,12 @@
 #
 # Prerequisites:
 #   - Docker and docker-compose installed
-#   - SSH tunnel to Kafka: ssh -L 9092:localhost:9092 tunnel@128.2.220.241 -NT
-#   - Recommendation service running on :8082
+#   - SSH tunnel to Kafka (set KAFKA_SSH_PORT if not 22):
+#       ssh -L 9092:localhost:9092 -p "${KAFKA_SSH_PORT:-22}" tunnel@128.2.220.241 -NT
+#   - Recommendation service on :8082; metrics exporter on :8083 (matches monitoring/prometheus.yml)
 #   - pip install prometheus_client kafka-python-ng
+#
+# Prefer one command: bash scripts/setup_full_stack.sh
 
 set -euo pipefail
 
@@ -22,8 +25,9 @@ echo "=============================================="
 echo -e "\n--- Starting Prometheus + Grafana ---"
 cd "$SCRIPT_DIR"
 docker-compose up -d
-echo "  Prometheus: http://localhost:9090"
-echo "  Grafana:    http://localhost:3000 (admin / mlip2026)"
+echo "  Prometheus:    http://localhost:9090"
+echo "  Alertmanager:  http://localhost:9093"
+echo "  Grafana:       http://localhost:3000 (admin / mlip2026)"
 
 # Start metrics exporter
 echo -e "\n--- Starting Kafka Metrics Exporter ---"

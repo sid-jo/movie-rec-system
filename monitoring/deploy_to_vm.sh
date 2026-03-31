@@ -42,9 +42,8 @@ git pull origin main
 echo "Installing dependencies..."
 pip3 install --user prometheus_client kafka-python-ng 2>/dev/null || pip install prometheus_client kafka-python-ng
 
-# Fix prometheus.yml to use localhost instead of host.docker.internal (on VM, services run natively)
-echo "Configuring Prometheus for VM..."
-sed -i 's/host.docker.internal/localhost/g' monitoring/prometheus.yml 2>/dev/null || true
+# Prometheus runs in Docker; scrape targets use host.docker.internal:host-gateway (see monitoring/docker-compose.yml).
+# Do NOT replace with localhost — that would scrape inside the container, not the host gunicorn/exporter.
 
 # Ensure Docker is available
 if ! command -v docker &> /dev/null; then
@@ -73,6 +72,13 @@ nohup python3 monitoring/metrics_exporter.py \
     > logs/metrics_exporter.log 2>&1 &
 echo "Metrics exporter PID: $!"
 
+# Continuous cold-start processor (signup -> cold_start_cache.json)
+pkill -f "scripts/update_cold_start.py" 2>/dev/null || true
+sleep 1
+nohup python3 scripts/update_cold_start.py --mode continuous --bootstrap localhost:9092 \
+    > logs/cold_start_daemon.log 2>&1 &
+echo "Cold-start daemon PID: $!"
+
 # Restart the main service (gunicorn) to pick up Prometheus instrumentation
 echo "Restarting recommendation service..."
 if pgrep -f "gunicorn.*src.app" > /dev/null 2>&1; then
@@ -89,9 +95,9 @@ else
     echo "Gunicorn started. PID: $!"
 fi
 
-# Install crontab
+# Install crontab (paths expanded to this repo)
 echo "Installing cron jobs..."
-crontab scripts/crontab.txt 2>/dev/null && echo "Crontab installed." || echo "Crontab install failed (check paths in scripts/crontab.txt)"
+bash scripts/install_crontab.sh 2>/dev/null && echo "Crontab installed." || echo "Crontab install failed — run: bash scripts/install_crontab.sh"
 
 echo ""
 echo "=============================================="

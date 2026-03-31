@@ -20,7 +20,7 @@ from src.recommender import get_recommendations, get_model_type
 
 app = Flask(__name__)
 
-API_BASE = "http://128.2.220.241:8080"
+API_BASE = os.environ.get("USER_API_BASE", "http://128.2.220.241:8080")
 USER_TIMEOUT = 0.2
 
 # ---------------------------------------------------------------------------

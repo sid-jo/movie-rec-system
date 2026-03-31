@@ -108,18 +108,27 @@ def kafka_collector(bootstrap_servers="localhost:9092"):
 
     metadata = _load_movies_metadata()
     print(f"[metrics_exporter] Loaded {len(metadata)} movies")
-    print(f"[metrics_exporter] Connecting to Kafka at {bootstrap_servers}...")
 
-    consumer = KafkaConsumer(
-        "movielog2",
-        bootstrap_servers=[bootstrap_servers],
-        auto_offset_reset="latest",
-        enable_auto_commit=True,
-        group_id="team2-metrics-exporter",
-        consumer_timeout_ms=5000,
-        value_deserializer=lambda x: x.decode("utf-8"),
-    )
-    print("[metrics_exporter] Connected. Consuming...")
+    consumer = None
+    while consumer is None:
+        print(f"[metrics_exporter] Connecting to Kafka at {bootstrap_servers}...")
+        try:
+            consumer = KafkaConsumer(
+                "movielog2",
+                bootstrap_servers=[bootstrap_servers],
+                auto_offset_reset="latest",
+                enable_auto_commit=True,
+                group_id="team2-metrics-exporter",
+                consumer_timeout_ms=5000,
+                value_deserializer=lambda x: x.decode("utf-8"),
+            )
+            print("[metrics_exporter] Connected. Consuming...")
+        except Exception as e:
+            print(
+                f"[metrics_exporter] Kafka not ready ({e!s}); retry in 30s "
+                f"(SSH tunnel must expose localhost:9092)."
+            )
+            time.sleep(30)
 
     user_recs = defaultdict(list)
     user_watches = defaultdict(set)

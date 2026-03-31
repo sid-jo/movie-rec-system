@@ -32,6 +32,14 @@ echo "AUTOMATED RETRAINING PIPELINE"
 echo "Started: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "=============================================="
 
+# Cron jobs do not inherit your interactive SSH session — ensure Kafka tunnel exists
+# before kafka_collector (requires localhost:9092). Copy .env.tunnel.example to .env.tunnel if needed.
+if [ -x "$SCRIPT_DIR/ensure_kafka_tunnel.sh" ]; then
+  if ! bash "$SCRIPT_DIR/ensure_kafka_tunnel.sh"; then
+    echo "WARNING: Kafka tunnel not available (see logs/tunnel.log). Ingest step may fail or use stale data."
+  fi
+fi
+
 SKIP_INGEST=false
 SKIP_PULL=false
 for arg in "$@"; do

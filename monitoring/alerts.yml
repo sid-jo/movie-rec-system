@@ -10,6 +10,15 @@ groups:
           summary: "Recommendation service is down"
           description: "The recommendation service has been unreachable for more than 2 minutes."
 
+      - alert: MetricsExporterDown
+        expr: up{job="metrics-exporter"} == 0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka metrics exporter is down"
+          description: "Online quality, cost, and drift metrics are not being scraped (check tunnel and process on :8083)."
+
       - alert: HighErrorRate
         expr: rate(recommendation_errors_total[5m]) > 0.1
         for: 3m

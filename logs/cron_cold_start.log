@@ -1,0 +1,416 @@
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+[cold_start] One-shot mode: collecting for 300s
+Traceback (most recent call last):
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 239, in <module>
+    main()
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 235, in main
+    run_oneshot(args.bootstrap, args.duration)
+  File "/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py", line 189, in run_oneshot
+    consumer = KafkaConsumer(
+               ^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/consumer/group.py", line 364, in __init__
+    self._client = self.config['kafka_client'](metrics=self._metrics, **self.config)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 234, in __init__
+    self.config['api_version'] = self.check_version(timeout=check_timeout)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/ryanw3/.local/lib/python3.12/site-packages/kafka/client_async.py", line 902, in check_version
+    raise Errors.NoBrokersAvailable()
+kafka.errors.NoBrokersAvailable: NoBrokersAvailable
+/home/ryanw3/group-project-s26-model-impossible-1/scripts/update_cold_start.py:111: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "cached_at": datetime.utcnow().isoformat() + "Z",

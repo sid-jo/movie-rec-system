@@ -29,7 +29,7 @@ METADATA_DIR = os.path.join(PROJECT_ROOT, "metadata")
 ARTIFACTS_DIR = os.path.join(PROJECT_ROOT, "models", "artifacts")
 CACHE_PATH = os.path.join(ARTIFACTS_DIR, "cold_start_cache.json")
 
-API_BASE = "http://128.2.220.241:8080"
+API_BASE = os.environ.get("USER_API_BASE", "http://128.2.220.241:8080")
 
 
 def load_cold_start_artifacts():

@@ -8,6 +8,10 @@ __pycache__/
 *.egg-info/
 .eggs/
 *.pkl
+# Local tunnel / secrets (copy from .env.tunnel.example)
+.env.tunnel
+monitoring/.env
+
 # Project
 kafka_2.13-3.6.0.tgz
 kafka_2.13-3.6.0
