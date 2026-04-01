@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Idempotent: ensure localhost:KAFKA_LOCAL_PORT forwards to remote Kafka (SSH -L).
+# Prefers autossh (auto-restarts SSH if the tunnel drops); falls back to ssh.
 # Cron-friendly: sources optional PROJECT_ROOT/.env.tunnel for KAFKA_SSH_* overrides.
 #
 # Exit 0: port already listening or tunnel started.
-# Exit 1: tunnel needed but ssh failed (check keys, KAFKA_SSH_PORT, host reachability).
+# Exit 1: tunnel needed but ssh/autossh failed (check keys, KAFKA_SSH_PORT, host reachability).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,6 +21,8 @@ KAFKA_SSH_HOST="${KAFKA_SSH_HOST:-128.2.220.241}"
 KAFKA_SSH_USER="${KAFKA_SSH_USER:-tunnel}"
 KAFKA_SSH_PORT="${KAFKA_SSH_PORT:-${SSH_PORT:-22}}"
 KAFKA_LOCAL_PORT="${KAFKA_LOCAL_PORT:-9092}"
+# yes = use autossh when installed; no = always plain ssh
+USE_AUTOSSH="${USE_AUTOSSH:-yes}"
 
 if command -v ss >/dev/null 2>&1; then
   if ss -tln 2>/dev/null | grep -q ":${KAFKA_LOCAL_PORT} "; then
@@ -31,14 +34,37 @@ elif command -v netstat >/dev/null 2>&1; then
   fi
 fi
 
-echo "[ensure_kafka_tunnel] Port ${KAFKA_LOCAL_PORT} not listening — starting SSH tunnel to ${KAFKA_SSH_USER}@${KAFKA_SSH_HOST}:${KAFKA_SSH_PORT}..."
-# BatchMode=yes avoids hung cron jobs if keys are missing (set SSH_BATCH_MODE=no to allow password prompts — not recommended for cron)
 EXTRA_SSH=()
 if [ "${SSH_BATCH_MODE:-yes}" = "yes" ]; then
   EXTRA_SSH=(-o BatchMode=yes)
 fi
-exec ssh -f -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=60 -o ServerAliveCountMax=3 \
-  "${EXTRA_SSH[@]}" \
-  -p "${KAFKA_SSH_PORT}" \
-  -L "${KAFKA_LOCAL_PORT}:localhost:9092" \
-  "${KAFKA_SSH_USER}@${KAFKA_SSH_HOST}"
+
+# SSH options: keepalives + fast detect of dead peer (common cause of "Connection reset by peer" in consumers)
+SSH_LIVE_OPTS=(
+  -o ExitOnForwardFailure=yes
+  -o ServerAliveInterval=30
+  -o ServerAliveCountMax=4
+  -o TCPKeepAlive=yes
+)
+
+if [ "$USE_AUTOSSH" = "yes" ] && command -v autossh >/dev/null 2>&1; then
+  # -M 0: rely on ServerAliveInterval instead of a separate autossh monitor port
+  export AUTOSSH_GATETIME="${AUTOSSH_GATETIME:-0}"
+  export AUTOSSH_POLL="${AUTOSSH_POLL:-30}"
+  echo "[ensure_kafka_tunnel] Port ${KAFKA_LOCAL_PORT} not listening — starting autossh tunnel to ${KAFKA_SSH_USER}@${KAFKA_SSH_HOST}:${KAFKA_SSH_PORT}..."
+  autossh -M 0 -f -N "${SSH_LIVE_OPTS[@]}" "${EXTRA_SSH[@]}" \
+    -p "${KAFKA_SSH_PORT}" \
+    -L "${KAFKA_LOCAL_PORT}:localhost:9092" \
+    "${KAFKA_SSH_USER}@${KAFKA_SSH_HOST}" || exit 1
+  exit 0
+else
+  if [ "$USE_AUTOSSH" = "yes" ]; then
+    echo "[ensure_kafka_tunnel] autossh not installed — using ssh (install: bash scripts/install_autossh.sh)"
+  fi
+  echo "[ensure_kafka_tunnel] Port ${KAFKA_LOCAL_PORT} not listening — starting SSH tunnel to ${KAFKA_SSH_USER}@${KAFKA_SSH_HOST}:${KAFKA_SSH_PORT}..."
+  ssh -f -N "${SSH_LIVE_OPTS[@]}" "${EXTRA_SSH[@]}" \
+    -p "${KAFKA_SSH_PORT}" \
+    -L "${KAFKA_LOCAL_PORT}:localhost:9092" \
+    "${KAFKA_SSH_USER}@${KAFKA_SSH_HOST}" || exit 1
+  exit 0
+fi

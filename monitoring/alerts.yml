@@ -19,6 +19,24 @@ groups:
           summary: "Kafka metrics exporter is down"
           description: "Online quality, cost, and drift metrics are not being scraped (check tunnel and process on :8083)."
 
+      - alert: KafkaConsumerDisconnected
+        expr: kafka_stream_consumer_connected == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kafka consumer not connected (metrics exporter)"
+          description: "The movielog2 consumer lost broker connectivity — check autossh tunnel, broker, and logs/metrics_exporter.log."
+
+      - alert: KafkaConsumerPollStalled
+        expr: kafka_stream_consumer_connected == 1 and (time() - kafka_consumer_last_successful_poll_timestamp_seconds) > 180
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka consumer poll stalled while marked connected"
+          description: "poll() has not completed successfully for 3+ minutes; possible hung client or partial tunnel failure."
+
       - alert: HighErrorRate
         expr: rate(recommendation_errors_total[5m]) > 0.1
         for: 3m

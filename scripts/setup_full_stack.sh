@@ -50,22 +50,18 @@ echo "=============================================="
 echo "Stack setup — $PROJECT_ROOT"
 echo "=============================================="
 
-# --- Kafka SSH tunnel (optional; cron also runs ensure_kafka_tunnel) ---
+# --- Kafka SSH tunnel (autossh when installed; cron also runs ensure_kafka_tunnel) ---
 if [ "$SKIP_TUNNEL" != "1" ]; then
-  if command -v ss >/dev/null 2>&1 && ss -tln 2>/dev/null | grep -q ":${KAFKA_LOCAL_PORT} "; then
-    echo "[tunnel] :${KAFKA_LOCAL_PORT} already listening."
+  if [ "${AUTO_INSTALL_AUTOSSH:-0}" = "1" ] && ! command -v autossh >/dev/null 2>&1; then
+    bash "$SCRIPT_DIR/install_autossh.sh" 2>/dev/null || true
+  fi
+  echo "[tunnel] Ensuring localhost:${KAFKA_LOCAL_PORT} (autossh preferred)..."
+  if bash "$SCRIPT_DIR/ensure_kafka_tunnel.sh"; then
+    sleep 2
+    echo "[tunnel] OK."
   else
-    echo "[tunnel] Trying SSH tunnel to ${KAFKA_SSH_USER}@${KAFKA_SSH_HOST}:${KAFKA_SSH_PORT}..."
-    if ssh -f -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=60 \
-      -p "${KAFKA_SSH_PORT}" \
-      -L "${KAFKA_LOCAL_PORT}:localhost:9092" \
-      "${KAFKA_SSH_USER}@${KAFKA_SSH_HOST}"; then
-      sleep 2
-      echo "[tunnel] OK."
-    else
-      echo "[tunnel] Could not start (SSH keys / port?). Kafka metrics wait until tunnel works."
-      [ "$REQUIRE_KAFKA_TUNNEL" = "1" ] && exit 1
-    fi
+    echo "[tunnel] Could not start (SSH keys / port?). Kafka metrics wait until tunnel works."
+    [ "$REQUIRE_KAFKA_TUNNEL" = "1" ] && exit 1
   fi
 fi
 

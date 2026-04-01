@@ -1,4 +1,5 @@
 # Recommendation service cron jobs — install with: bash scripts/install_crontab.sh
+# For resilient Kafka SSH tunnels after drops, install once: bash scripts/install_autossh.sh
 # Retrain every 3 days at 02:00 UTC; cold-start oneshot every 30 min; health every 5 min.
 
 PROJECT_ROOT=__PROJECT_ROOT__
@@ -12,6 +13,6 @@ PROJECT_ROOT=__PROJECT_ROOT__
 
 # Cold-start updater: every 30 minutes, process signups for 5 minutes (complements continuous daemon)
 */30 * * * * cd $PROJECT_ROOT && bash scripts/ensure_kafka_tunnel.sh >> logs/tunnel.log 2>&1 && python3 scripts/update_cold_start.py --mode oneshot --duration 300 >> logs/cron_cold_start.log 2>&1
-
 # Health check: ping service every 5 minutes, restart if down
 */5 * * * * curl -sf http://localhost:8082/health > /dev/null || (cd $PROJECT_ROOT && bash scripts/restart_service.sh >> logs/cron_restart.log 2>&1)
+

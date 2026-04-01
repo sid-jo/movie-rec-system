@@ -41,6 +41,10 @@ git pull origin main
 
 echo "Installing dependencies..."
 pip3 install --user prometheus_client kafka-python-ng 2>/dev/null || pip install prometheus_client kafka-python-ng
+if ! command -v autossh >/dev/null 2>&1; then
+  echo "Installing autossh (auto-restart Kafka SSH tunnel on drops)..."
+  sudo apt-get update -qq && sudo apt-get install -y autossh || echo "autossh install skipped"
+fi
 
 # Prometheus runs in Docker; scrape targets use host.docker.internal:host-gateway (see monitoring/docker-compose.yml).
 # Do NOT replace with localhost — that would scrape inside the container, not the host gunicorn/exporter.
