@@ -122,18 +122,42 @@ def recommend(userid):
         pass  # Proceed without user data (cold start / fallback)
 
     try:
-        # --- A/B Experiment routing ---
+        # --- A/B Experiment routing (composed pipeline) ---
+        # Both experiments run simultaneously on every request:
+        #   exp_cold_start   → Stage 1: decides whether to use self-description (input)
+        #   exp_cost_optimise → Stage 3: decides whether to re-rank by cost (output)
+        # get_recommendations is called exactly once; both experiments log the same
+        # final rec list so outcome attribution is consistent.
         recs = None
         try:
             mgr = get_manager()
+
+            # Collect assignments for all active experiments
+            assignments = {}
             for exp in mgr.get_active_experiments():
                 variant = mgr.get_variant_for_user(exp.id, userid)
                 if variant:
-                    variant_fn = get_variant_recommender(exp.id, variant.name)
-                    if variant_fn:
-                        recs = variant_fn(userid, user_data=user_data)
-                        mgr.log_assignment(exp.id, userid, variant.name, recs or [])
-                        break  # Use the first matching active experiment
+                    assignments[exp.id] = variant
+
+            # Stage 1 — exp_cold_start: suppress self-description for treatment arm
+            effective_user_data = user_data
+            if "exp_cold_start" in assignments:
+                if assignments["exp_cold_start"].name == "no_cold_start":
+                    effective_user_data = None
+
+            # Stage 2 — run recommender once with the decided input
+            recs = get_recommendations(userid, user_data=effective_user_data, force_popularity=False)
+
+            # Stage 3 — exp_cost_optimise: re-rank output for treatment arm
+            if "exp_cost_optimise" in assignments:
+                if assignments["exp_cost_optimise"].name == "cost_optimised":
+                    from src.recommender_variants import _apply_cost_rerank
+                    recs = _apply_cost_rerank(userid, recs)
+
+            # Log all assignments with the same final rec list
+            for exp_id, variant in assignments.items():
+                mgr.log_assignment(exp_id, userid, variant.name, recs or [])
+
         except Exception as e:
             logger.warning("Experiment routing failed, using default: %s", e)
 

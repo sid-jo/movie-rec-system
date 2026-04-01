@@ -76,29 +76,23 @@ def recommend_standard(user_id, user_data=None, **kwargs):
     return get_recommendations(user_id, user_data=user_data, force_popularity=False)
 
 
-def recommend_cost_optimised(user_id, user_data=None, **kwargs):
+def _apply_cost_rerank(user_id, base_recs):
     """
-    Treatment: Re-rank standard recommendations to prefer cheaper movies.
+    Re-rank an existing recommendation list to prefer cheaper-to-license movies.
 
-    Strategy: Generate the normal top-40 candidates, then re-score them with
-    a blended objective: 70% relevance rank + 30% cost savings.  This nudges
-    cheaper movies higher without completely ignoring relevance.
+    Strategy: expand to top-40 NMF candidates, then re-score with a blended
+    objective: 70% relevance rank + 30% cost savings.
     """
-    from src.recommender import get_recommendations, _load_artifacts, _nmf, _top_movies, _valid_movie_ids
+    from src.recommender import _load_artifacts, _nmf as nmf_model
 
     _load_artifacts()
     costs = _load_movie_costs()
 
-    # Get a wider candidate set from the standard recommender
-    base_recs = get_recommendations(user_id, user_data=user_data, force_popularity=False)
-
     if not base_recs or not costs:
         return base_recs
 
-    # Expand candidate pool: get top 40 from NMF if available
-    from src.recommender import _nmf as nmf_model
-    candidates = list(base_recs)  # start with base recs
-
+    # Expand candidate pool with top-40 NMF scores if available
+    candidates = list(base_recs)
     if nmf_model:
         user_idx = nmf_model.get("user_id_to_idx", {})
         if str(user_id) in user_idx:
@@ -123,14 +117,24 @@ def recommend_cost_optimised(user_id, user_data=None, **kwargs):
     scored = []
     n = len(candidates)
     for rank, mid in enumerate(candidates):
-        relevance_score = 1.0 - (rank / max(n, 1))  # 1.0 for top, 0 for bottom
+        relevance_score = 1.0 - (rank / max(n, 1))
         cost = costs.get(mid, 0.0)
-        cost_savings = 1.0 - (cost / max_cost)       # 1.0 for cheapest
+        cost_savings = 1.0 - (cost / max_cost)
         blended = 0.70 * relevance_score + 0.30 * cost_savings
         scored.append((mid, blended))
 
     scored.sort(key=lambda x: x[1], reverse=True)
     return [mid for mid, _ in scored[:20]]
+
+
+def recommend_cost_optimised(user_id, user_data=None, **kwargs):
+    """
+    Treatment: Re-rank standard recommendations to prefer cheaper movies.
+    Calls get_recommendations internally; used when exp_cost_optimise runs standalone.
+    """
+    from src.recommender import get_recommendations
+    base_recs = get_recommendations(user_id, user_data=user_data, force_popularity=False)
+    return _apply_cost_rerank(user_id, base_recs)
 
 
 # ---------------------------------------------------------------------------
