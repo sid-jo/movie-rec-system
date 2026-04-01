@@ -14,7 +14,7 @@
     "test_ratio": 0.2
   },
   "results": {
-    "ndcg_mean": 0.020059897417956753,
+    "ndcg_mean": 0.02004085492544601,
     "users_evaluated": 20289,
     "users_skipped_no_relevant": 542
   },
