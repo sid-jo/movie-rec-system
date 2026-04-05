@@ -73,29 +73,63 @@
       "fieldConfig": { "defaults": { "unit": "reqps", "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 0.01 }] } } }
     },
     {
-      "title": "Model Accuracy",
+      "title": "Kafka stream",
       "type": "row",
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
       "collapsed": false
     },
     {
+      "title": "Kafka consumer connected",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 10 },
+      "targets": [{ "expr": "kafka_stream_consumer_connected", "legendFormat": "Kafka" }],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DISCONNECTED", "color": "red" }, "1": { "text": "CONNECTED", "color": "green" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      }
+    },
+    {
+      "title": "Seconds since last Kafka poll",
+      "type": "timeseries",
+      "gridPos": { "h": 4, "w": 10, "x": 4, "y": 10 },
+      "targets": [{ "expr": "time() - kafka_consumer_last_successful_poll_timestamp_seconds", "legendFormat": "lag (s)" }],
+      "fieldConfig": { "defaults": { "unit": "s", "decimals": 1 } }
+    },
+    {
+      "title": "Kafka messages (rate)",
+      "type": "timeseries",
+      "gridPos": { "h": 4, "w": 10, "x": 14, "y": 10 },
+      "targets": [{ "expr": "rate(online_kafka_messages_total[5m])", "legendFormat": "msgs/s" }],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "title": "Model Accuracy",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "collapsed": false
+    },
+    {
       "title": "Watch-Through Rate (WTR)",
       "type": "timeseries",
-      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 10 },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 15 },
       "targets": [{ "expr": "online_watch_through_rate", "legendFormat": "WTR" }],
       "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 4 } }
     },
     {
       "title": "Positive-Rating Rate (PRR)",
       "type": "timeseries",
-      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 10 },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 15 },
       "targets": [{ "expr": "online_positive_rating_rate", "legendFormat": "PRR" }],
       "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 4 } }
     },
     {
       "title": "Model Distribution",
       "type": "piechart",
-      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 10 },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 15 },
       "targets": [
         { "expr": "sum by (model_type) (recommendation_requests_total)", "legendFormat": "{{model_type}}" }
       ]
@@ -103,27 +137,27 @@
     {
       "title": "Operating Cost",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 21 },
       "collapsed": false
     },
     {
       "title": "Total License Cost (USD)",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 17 },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 22 },
       "targets": [{ "expr": "online_license_cost_usd_total", "legendFormat": "Total" }],
       "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 2 } }
     },
     {
       "title": "Rec-Attributed Cost (USD)",
       "type": "stat",
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 17 },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 22 },
       "targets": [{ "expr": "online_rec_attributed_cost_usd_total", "legendFormat": "Attributed" }],
       "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 2 } }
     },
     {
       "title": "License Cost Rate (USD/min)",
       "type": "timeseries",
-      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 17 },
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 22 },
       "targets": [
         { "expr": "rate(online_license_cost_usd_total[5m]) * 60", "legendFormat": "Platform $/min" },
         { "expr": "rate(online_rec_attributed_cost_usd_total[5m]) * 60", "legendFormat": "Attributed $/min" }
@@ -133,27 +167,27 @@
     {
       "title": "Data Drift",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 28 },
       "collapsed": false
     },
     {
       "title": "Rating Mean (rolling)",
       "type": "timeseries",
-      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 24 },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 29 },
       "targets": [{ "expr": "drift_rating_mean", "legendFormat": "Rating Mean" }],
       "fieldConfig": { "defaults": { "decimals": 2 } }
     },
     {
       "title": "Watch Duration Mean (rolling)",
       "type": "timeseries",
-      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 24 },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 29 },
       "targets": [{ "expr": "drift_watch_duration_mean", "legendFormat": "Watch Min Mean" }],
       "fieldConfig": { "defaults": { "unit": "m", "decimals": 1 } }
     },
     {
       "title": "Drift Alerts",
       "type": "stat",
-      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 24 },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 29 },
       "targets": [
         { "expr": "drift_rating_shift_detected", "legendFormat": "Rating Drift" },
         { "expr": "drift_watch_duration_shift_detected", "legendFormat": "Watch Drift" }

@@ -8,6 +8,10 @@ __pycache__/
 *.egg-info/
 .eggs/
 *.pkl
+# Local tunnel / secrets (copy from .env.tunnel.example)
+.env.tunnel
+monitoring/.env
+
 # Project
 kafka_2.13-3.6.0.tgz
 kafka_2.13-3.6.0
@@ -15,3 +19,23 @@ raw_data/
 data/raw_logs/
 awscliv2.zip
 mlip-spring2026-eeb3651d88d4.json
+
+# Runtime / local noise (VM, cron, gunicorn)
+logs/
+*.log
+
+# Test & coverage (CI writes these)
+.coverage
+coverage_html/
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# OS / editor
+.DS_Store
+*.swp
+*~
+
+# Generated cold-start cache (rebuilt by update_cold_start / daemon)
+models/artifacts/cold_start_cache.json

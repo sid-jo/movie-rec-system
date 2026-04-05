@@ -10,6 +10,7 @@ Includes:
 """
 import logging
 import os
+import re
 import time
 import json
 
@@ -29,8 +30,15 @@ from src.recommender_variants import get_variant_recommender
 app = Flask(__name__)
 logger = logging.getLogger(__name__)
 
-API_BASE = "http://128.2.220.241:8080"
-USER_TIMEOUT = 0.2  # Stay under 600ms total
+API_BASE = os.environ.get("USER_API_BASE", "http://128.2.220.241:8080")
+USER_TIMEOUT = 0.2
+
+# Path segment must be safe for upstream API URLs and match M2 schema (alphanumeric + _-).
+_USERID_RE = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
+
+
+def _valid_userid(userid: str) -> bool:
+    return bool(userid and _USERID_RE.fullmatch(userid))
 
 # ---------------------------------------------------------------------------
 # Prometheus metrics
@@ -106,6 +114,10 @@ def home():
 
 @app.route("/recommend/<userid>")
 def recommend(userid):
+    if not _valid_userid(userid):
+        REQUEST_COUNT.labels(status="400", model_type="unknown").inc()
+        return "invalid userid", 400, {"Content-Type": "text/plain; charset=utf-8"}
+
     start = time.time()
     model_type = "unknown"
 

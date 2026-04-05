@@ -17,8 +17,8 @@ We fully automate model retraining via [`scripts/retrain_and_deploy.sh`](https:/
 3. **Model backup:** Copies current model artifacts (`model_nmf.joblib`, `model_popularity.joblib`, `cold_start.joblib`) to a timestamped backup directory for rollback.
 4. **Model training:** Runs `scripts/train.py` to retrain both the NMF collaborative filtering model and the popularity model on the latest data.
 5. **Provenance recording:** Writes `models/artifacts/model_version.json` with a monotonically increasing version number, training timestamp, git SHA, SHA-256 hashes of all model artifacts, and pointers to the training data files used.
-6. **Offline evaluation:** Runs `models/evaluate.py` as a sanity check on the new model.
-7. **Zero-downtime deployment:** Sends `SIGHUP` to the running gunicorn process, which gracefully reloads workers with the new model artifacts. No requests are dropped during the swap.
+6. **Offline evaluation:** Runs `scripts/offline_eval.py` as a sanity check on the new joblib artifacts produced by `scripts/train.py` (not the legacy `models/evaluate.py` / `.pkl` path).
+7. **Zero-downtime deployment:** Sends `SIGHUP` to the running gunicorn master (`src.app:app`), which gracefully reloads workers with the new model artifacts.
 
 The script is triggered by cron every 3 days (see [`scripts/crontab.txt`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/crontab.txt)):
 ```
@@ -66,8 +66,11 @@ We use **Prometheus** for metrics collection and **Grafana** for visualization, 
    - `online_license_cost_usd_total` — cumulative platform-wide license cost
    - `online_rec_attributed_cost_usd_total` — cumulative recommendation-attributed cost
    - `online_rec_rate_per_minute` — recommendation events per minute (availability proxy from Kafka)
+   - `kafka_stream_consumer_connected`, `kafka_consumer_last_successful_poll_timestamp_seconds`, `kafka_consumer_reconnects_total` — Kafka consumer / tunnel health (Grafana row **Kafka stream**)
    - `drift_rating_mean`, `drift_watch_duration_mean` — rolling distribution statistics
    - `drift_rating_shift_detected`, `drift_watch_duration_shift_detected` — binary drift alerts
+
+   **Tunnel reliability:** `scripts/ensure_kafka_tunnel.sh` uses **autossh** when installed (`scripts/install_autossh.sh`) so an SSH tunnel drop to the course broker is automatically retried; consumers in the exporter and `scripts/update_cold_start.py` reconnect after broker errors.
 
 3. **Prometheus + Grafana** (Docker): Prometheus scrapes both endpoints every 10-15 seconds. Grafana auto-provisions a pre-built dashboard via JSON provisioning.
 
@@ -77,7 +80,7 @@ We use **Prometheus** for metrics collection and **Grafana** for visualization, 
 |----------|---------|--------|
 | **(a) Availability** | Service up/down, uptime %, request rate, rec events/min from Kafka | Flask `/metrics` + Kafka exporter |
 | **(b) Model accuracy** | Watch-Through Rate, Positive-Rating Rate, model distribution pie chart | Kafka exporter |
-| **(c) Operating cost** | Total license cost, rec-attributed cost, cost rate ($/min) | Kafka exporter |
+| **(c) Operating cost** | Total license cost, rec-attributed cost, cost rate ($/min). **LLM / API token cost** is $0 in this deployment (no external LLM on the inference path); the rubric’s license-fee side is covered by the Kafka-derived counters above (see also M2 cost write-up). | Kafka exporter |
 | **(d) Data drift** | Rating mean shift (>0.5), watch duration shift (>30%), drift alert indicators | Kafka exporter |
 
 ### Alerts
@@ -87,6 +90,9 @@ We configured Prometheus alerting rules in [`monitoring/alerts.yml`](https://git
 | Alert | Condition | Severity | Rationale |
 |-------|-----------|----------|-----------|
 | **ServiceDown** | Service unreachable for 2 min | Critical | Availability is graded; must detect downtime immediately |
+| **MetricsExporterDown** | Scrape of `:8083` fails for 3 min | Warning | Loses Kafka-side accuracy, cost, drift, and Kafka health metrics |
+| **KafkaConsumerDisconnected** | `kafka_stream_consumer_connected == 0` for 3 min | Critical | Tunnel/broker/consumer failure — stream processing stopped |
+| **KafkaConsumerPollStalled** | Connected but no successful poll > 180s for 3 min | Warning | Detects hung client or partial tunnel failure |
 | **HighErrorRate** | Error rate > 0.1/s for 3 min | Warning | Indicates model loading or API failure |
 | **HighLatency** | p95 latency > 600ms for 5 min | Warning | Service must respond within time limit |
 | **NoRecommendationTraffic** | 0 rec events in Kafka for 5 min | Critical | Service may be down even if HTTP is up |
@@ -97,7 +103,7 @@ Alerts are justified because (1) availability is directly graded (70%+ required)
 
 ### Dashboard Screenshot
 
-*[Screenshot to be added after deploying on VM — run `monitoring/start_monitoring.sh` then visit http://\<vm-ip\>:3000]*
+Include Grafana exports showing **Service Availability** (request rate, latency, uptime), **Kafka stream** (consumer connected + poll lag), **Model Accuracy** (WTR/PRR), **Operating Cost**, and **Data Drift** — matching the provisioned dashboard [`monitoring/grafana/dashboards/recommendation-service.json`](monitoring/grafana/dashboards/recommendation-service.json). After deploying on the VM, capture from `http://<vm-ip>:3000/d/rec-service-dashboard` (refresh the dashboard JSON on the server if you added panels locally).
 
 ### Implementation Pointers
 

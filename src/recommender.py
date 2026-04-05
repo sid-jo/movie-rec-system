@@ -18,6 +18,25 @@ _pop = None
 _cold_start = None
 _valid_movie_ids = None
 _top_movies = None
+_cold_cache = None
+_cold_cache_mtime = 0.0
+_COLD_CACHE_PATH = os.path.join(MODELS_DIR, "cold_start_cache.json")
+
+
+def _get_cold_start_cache():
+    """Pre-computed signup cache from scripts/update_cold_start.py (mtime-invalidated)."""
+    global _cold_cache, _cold_cache_mtime
+    if not os.path.exists(_COLD_CACHE_PATH):
+        return {}
+    try:
+        m = os.path.getmtime(_COLD_CACHE_PATH)
+        if _cold_cache is None or m != _cold_cache_mtime:
+            with open(_COLD_CACHE_PATH) as f:
+                _cold_cache = json.load(f)
+            _cold_cache_mtime = m
+    except Exception:
+        _cold_cache = _cold_cache or {}
+    return _cold_cache
 
 
 def _load_artifacts():
@@ -55,6 +74,9 @@ def get_model_type(user_id, user_data=None, force_popularity=False):
     """Return which model path would be used for this user (without computing recs)."""
     _load_artifacts()
     user_id_str = str(user_id)
+    cache = _get_cold_start_cache()
+    if cache.get(user_id_str, {}).get("recommendations") and not force_popularity:
+        return "cold_start_cache"
     if user_data and _cold_start and not force_popularity:
         title_to_id = _cold_start.get("title_to_id", {})
         likes = user_data.get("self_description_likes") or ""
@@ -78,6 +100,16 @@ def get_recommendations(user_id, user_data=None, force_popularity=False):
     """
     _load_artifacts()
     user_id_str = str(user_id)
+
+    # 0. Signup cache (daemon/cron pre-computed from self-descriptions at signup)
+    if not force_popularity:
+        cache = _get_cold_start_cache()
+        entry = cache.get(user_id_str) or {}
+        cached_recs = entry.get("recommendations") or []
+        if cached_recs:
+            valid = [m for m in cached_recs if m in (_valid_movie_ids or [])]
+            if valid:
+                return valid[:20]
 
     # 1. Cold start: use self_description_likes / dislikes if provided
     if user_data and _cold_start and not force_popularity:

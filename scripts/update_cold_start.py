@@ -29,7 +29,7 @@ METADATA_DIR = os.path.join(PROJECT_ROOT, "metadata")
 ARTIFACTS_DIR = os.path.join(PROJECT_ROOT, "models", "artifacts")
 CACHE_PATH = os.path.join(ARTIFACTS_DIR, "cold_start_cache.json")
 
-API_BASE = "http://128.2.220.241:8080"
+API_BASE = os.environ.get("USER_API_BASE", "http://128.2.220.241:8080")
 
 
 def load_cold_start_artifacts():
@@ -113,15 +113,10 @@ def process_signup(userid, artifacts, cache):
     return True
 
 
-def run_continuous(bootstrap_servers, report_interval=60):
+def _cold_start_consumer(bootstrap_servers):
     from kafka import KafkaConsumer
 
-    artifacts = load_cold_start_artifacts()
-    cache = load_existing_cache()
-    print(f"[cold_start] Loaded {len(artifacts.get('title_to_id', {}))} title mappings")
-    print(f"[cold_start] Existing cache: {len(cache)} users")
-
-    consumer = KafkaConsumer(
+    return KafkaConsumer(
         "movielog2",
         bootstrap_servers=[bootstrap_servers],
         auto_offset_reset="latest",
@@ -129,8 +124,21 @@ def run_continuous(bootstrap_servers, report_interval=60):
         group_id="team2-cold-start-updater",
         consumer_timeout_ms=5000,
         value_deserializer=lambda x: x.decode("utf-8"),
+        session_timeout_ms=45000,
+        heartbeat_interval_ms=10000,
+        request_timeout_ms=90000,
+        reconnect_backoff_ms=500,
+        reconnect_backoff_max_ms=10000,
     )
-    print(f"[cold_start] Connected to Kafka. Monitoring signups...")
+
+
+def run_continuous(bootstrap_servers, report_interval=60):
+    from kafka.errors import KafkaError
+
+    artifacts = load_cold_start_artifacts()
+    cache = load_existing_cache()
+    print(f"[cold_start] Loaded {len(artifacts.get('title_to_id', {}))} title mappings")
+    print(f"[cold_start] Existing cache: {len(cache)} users")
 
     new_signups = 0
     processed = 0
@@ -138,45 +146,80 @@ def run_continuous(bootstrap_servers, report_interval=60):
     last_save = start
 
     while True:
-        try:
-            msg_pack = consumer.poll(timeout_ms=3000)
-            for tp, messages in msg_pack.items():
-                for message in messages:
-                    raw = message.value
-                    if "create_account" not in raw:
-                        continue
-
-                    parts = raw.split(",", 2)
-                    if len(parts) < 3:
-                        continue
-                    userid = parts[1].strip()
-                    new_signups += 1
-
-                    if userid not in cache:
-                        ok = process_signup(userid, artifacts, cache)
-                        if ok:
-                            processed += 1
-
-            now = time.time()
-            if now - last_save >= report_interval:
-                save_cache(cache)
-                elapsed = now - start
+        consumer = None
+        while consumer is None:
+            try:
                 print(
-                    f"[cold_start] {elapsed:.0f}s | "
-                    f"signups={new_signups} processed={processed} "
-                    f"cache_size={len(cache)}"
+                    f"[cold_start] {datetime.utcnow().isoformat()}Z "
+                    f"Connecting to Kafka at {bootstrap_servers}..."
                 )
-                last_save = now
+                consumer = _cold_start_consumer(bootstrap_servers)
+                print("[cold_start] Connected. Monitoring signups...")
+            except Exception as e:
+                print(
+                    f"[cold_start] {datetime.utcnow().isoformat()}Z "
+                    f"connect failed ({e!r}); retry in 30s (tunnel/autossh / broker)."
+                )
+                time.sleep(30)
 
+        try:
+            while True:
+                try:
+                    msg_pack = consumer.poll(timeout_ms=3000)
+                except (KafkaError, OSError, ConnectionError, TimeoutError, EOFError) as e:
+                    print(
+                        f"[cold_start] {datetime.utcnow().isoformat()}Z "
+                        f"poll/connection error (reconnecting): {e!r}"
+                    )
+                    break
+
+                for tp, messages in msg_pack.items():
+                    for message in messages:
+                        raw = message.value
+                        if "create_account" not in raw:
+                            continue
+
+                        parts = raw.split(",", 2)
+                        if len(parts) < 3:
+                            continue
+                        userid = parts[1].strip()
+                        new_signups += 1
+
+                        if userid not in cache:
+                            ok = process_signup(userid, artifacts, cache)
+                            if ok:
+                                processed += 1
+
+                now = time.time()
+                if now - last_save >= report_interval:
+                    save_cache(cache)
+                    elapsed = now - start
+                    print(
+                        f"[cold_start] {elapsed:.0f}s | "
+                        f"signups={new_signups} processed={processed} "
+                        f"cache_size={len(cache)}"
+                    )
+                    last_save = now
         except KeyboardInterrupt:
-            break
+            save_cache(cache)
+            try:
+                consumer.close()
+            except Exception:
+                pass
+            print(f"[cold_start] Done. Cache saved with {len(cache)} users.")
+            return
         except Exception as e:
-            print(f"[cold_start] Error: {e}")
-            time.sleep(5)
+            print(
+                f"[cold_start] {datetime.utcnow().isoformat()}Z "
+                f"unexpected error (reconnecting): {e!r}"
+            )
 
-    save_cache(cache)
-    consumer.close()
-    print(f"[cold_start] Done. Cache saved with {len(cache)} users.")
+        try:
+            consumer.close()
+        except Exception:
+            pass
+        print("[cold_start] Reconnecting consumer in 5s...")
+        time.sleep(5)
 
 
 def run_oneshot(bootstrap_servers, duration_sec):

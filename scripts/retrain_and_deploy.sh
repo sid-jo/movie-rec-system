@@ -32,6 +32,14 @@ echo "AUTOMATED RETRAINING PIPELINE"
 echo "Started: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "=============================================="
 
+# Cron jobs do not inherit your interactive SSH session — ensure Kafka tunnel exists
+# before kafka_collector (requires localhost:9092). Copy .env.tunnel.example to .env.tunnel if needed.
+if [ -x "$SCRIPT_DIR/ensure_kafka_tunnel.sh" ]; then
+  if ! bash "$SCRIPT_DIR/ensure_kafka_tunnel.sh"; then
+    echo "WARNING: Kafka tunnel not available (see logs/tunnel.log). Ingest step may fail or use stale data."
+  fi
+fi
+
 SKIP_INGEST=false
 SKIP_PULL=false
 for arg in "$@"; do
@@ -42,6 +50,7 @@ for arg in "$@"; do
 done
 
 cd "$PROJECT_ROOT"
+export PYTHONPATH="$PROJECT_ROOT"
 
 # Step 1: Pull latest code
 if [ "$SKIP_PULL" = false ]; then
@@ -121,19 +130,18 @@ with open(os.path.join(artifacts_dir, 'model_version.json'), 'w') as f:
 print(json.dumps(version_info, indent=2))
 "
 
-# Step 7: Offline evaluation (quick sanity check)
+# Step 7: Offline evaluation (matches scripts/train.py joblib artifacts; not models/evaluate.py legacy pkl)
 echo -e "\n--- Step 7: Offline evaluation ---"
-python3 models/evaluate.py || echo "Evaluation failed, check logs"
+python3 scripts/offline_eval.py || echo "Evaluation failed, check logs"
 
 # Step 8: Graceful restart of serving process
 echo -e "\n--- Step 8: Reloading serving process ---"
-if pgrep -f "gunicorn.*src.app" > /dev/null 2>&1; then
+if pgrep -f "src.app:app" > /dev/null 2>&1; then
     echo "Sending HUP to gunicorn for graceful reload..."
-    pkill -HUP -f "gunicorn.*src.app" || true
+    pkill -HUP -f "src.app:app" || true
     echo "Gunicorn reloaded (zero-downtime model swap)."
 else
-    echo "No gunicorn process found. If running via flask directly, restart manually."
-    echo "To start: gunicorn -w 2 -b 0.0.0.0:8082 src.app:app --timeout 120"
+    echo "No gunicorn process found. Start with: bash scripts/go.sh  or  python3 -m gunicorn -w 2 -b 0.0.0.0:8082 src.app:app --timeout 120"
 fi
 
 echo -e "\n=============================================="

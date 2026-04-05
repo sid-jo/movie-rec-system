@@ -14,7 +14,8 @@ if pgrep -f "gunicorn.*src.app" > /dev/null 2>&1; then
     pkill -HUP -f "gunicorn.*src.app" || true
 else
     echo "  Gunicorn not found. Starting..."
-    nohup gunicorn -w 2 -b 0.0.0.0:8082 src.app:app \
+    PYTHON="${PYTHON:-python3}"
+    nohup "$PYTHON" -m gunicorn -w 2 -b 0.0.0.0:8082 src.app:app \
         --timeout 120 --graceful-timeout 30 \
         --access-logfile logs/gunicorn_access.log \
         --error-logfile logs/gunicorn_error.log \

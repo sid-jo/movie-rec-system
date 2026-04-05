@@ -61,6 +61,19 @@ RATING_EVENTS = Counter(
 KAFKA_MESSAGES = Counter(
     "online_kafka_messages_total", "Total Kafka messages parsed"
 )
+# Kafka pipeline health (tunnel + broker + consumer poll loop)
+KAFKA_STREAM_CONSUMER_CONNECTED = Gauge(
+    "kafka_stream_consumer_connected",
+    "1 if metrics exporter Kafka consumer is connected and poll() succeeds; 0 during outage/reconnect",
+)
+KAFKA_CONSUMER_LAST_POLL_TIMESTAMP_SECONDS = Gauge(
+    "kafka_consumer_last_successful_poll_timestamp_seconds",
+    "Unix time of last successful consumer.poll() (updates even when batch is empty)",
+)
+KAFKA_CONSUMER_RECONNECTS_TOTAL = Counter(
+    "kafka_consumer_reconnects_total",
+    "Times the metrics exporter recreated the Kafka consumer after errors (e.g. connection reset)",
+)
 
 # Drift
 DRIFT_RATING_MEAN = Gauge(
@@ -102,15 +115,11 @@ def _movie_cost(mid, metadata):
     return 0.0
 
 
-def kafka_collector(bootstrap_servers="localhost:9092"):
-    """Background thread: consume Kafka and update Prometheus gauges."""
+def _kafka_consumer_factory(bootstrap_servers: str):
+    """Build a consumer tuned for flaky SSH tunnels (connection reset / broker timeouts)."""
     from kafka import KafkaConsumer
 
-    metadata = _load_movies_metadata()
-    print(f"[metrics_exporter] Loaded {len(metadata)} movies")
-    print(f"[metrics_exporter] Connecting to Kafka at {bootstrap_servers}...")
-
-    consumer = KafkaConsumer(
+    return KafkaConsumer(
         "movielog2",
         bootstrap_servers=[bootstrap_servers],
         auto_offset_reset="latest",
@@ -118,8 +127,22 @@ def kafka_collector(bootstrap_servers="localhost:9092"):
         group_id="team2-metrics-exporter",
         consumer_timeout_ms=5000,
         value_deserializer=lambda x: x.decode("utf-8"),
+        session_timeout_ms=45000,
+        heartbeat_interval_ms=10000,
+        request_timeout_ms=90000,
+        connections_max_idle_ms=540000,
+        reconnect_backoff_ms=500,
+        reconnect_backoff_max_ms=10000,
+        retry_backoff_ms=500,
     )
-    print("[metrics_exporter] Connected. Consuming...")
+
+
+def kafka_collector(bootstrap_servers="localhost:9092"):
+    """Background thread: consume Kafka and update Prometheus gauges; reconnect on broker errors."""
+    from kafka.errors import KafkaError
+
+    metadata = _load_movies_metadata()
+    print(f"[metrics_exporter] Loaded {len(metadata)} movies")
 
     user_recs = defaultdict(list)
     user_watches = defaultdict(set)
@@ -132,73 +155,129 @@ def kafka_collector(bootstrap_servers="localhost:9092"):
 
     rec_timestamps = []
 
+    KAFKA_STREAM_CONSUMER_CONNECTED.set(0)
+    KAFKA_CONSUMER_LAST_POLL_TIMESTAMP_SECONDS.set(time.time())
+
     while True:
-        try:
-            msg_pack = consumer.poll(timeout_ms=3000)
-            for tp, messages in msg_pack.items():
-                for message in messages:
-                    event = parse_kafka_line(message.value)
-                    if not event:
-                        continue
-                    KAFKA_MESSAGES.inc()
-
-                    etype = event.get("type")
-                    uid = event.get("userid", "")
-
-                    if etype == "recommendation":
-                        RECOMMENDATION_EVENTS.inc()
-                        rec_timestamps.append(time.time())
-                        movies_str = event.get("movies", "")
-                        if movies_str:
-                            rec_list = [
-                                m.strip().strip("'\" ")
-                                for m in movies_str.split(",")
-                                if m.strip()
-                            ]
-                            if rec_list:
-                                user_recs[uid].append(rec_list)
-
-                    elif etype == "watch":
-                        WATCH_EVENTS.inc()
-                        mid = event.get("movieid", "")
-                        if mid and uid:
-                            user_watches[uid].add(mid)
-                            c = _movie_cost(mid, metadata)
-                            if c > 0:
-                                TOTAL_LICENSE_COST.inc(c)
-                                if uid in user_recs:
-                                    for rec_set in user_recs[uid]:
-                                        if mid in rec_set:
-                                            REC_ATTRIBUTED_COST.inc(c)
-                                            break
-                        minute = event.get("minute", 0)
-                        if minute > 0:
-                            watch_min_window.append(minute)
-                            if len(watch_min_window) > WINDOW_SIZE:
-                                watch_min_window.pop(0)
-
-                    elif etype == "rating":
-                        RATING_EVENTS.inc()
-                        mid = event.get("movieid", "")
-                        rating_val = event.get("rating", 0)
-                        if mid and uid and rating_val:
-                            user_ratings[uid][mid] = rating_val
-                        if rating_val:
-                            rating_window.append(rating_val)
-                            if len(rating_window) > WINDOW_SIZE:
-                                rating_window.pop(0)
-
-            # Recompute gauges periodically
-            _update_accuracy_gauges(user_recs, user_watches, user_ratings)
-            _update_drift_gauges(
-                rating_window, watch_min_window,
-                ref_rating_mean, ref_watch_min_mean,
+        consumer = None
+        while consumer is None:
+            print(
+                f"[metrics_exporter] {datetime.utcnow().isoformat()}Z "
+                f"Connecting to Kafka at {bootstrap_servers}..."
             )
-            _update_availability(rec_timestamps)
+            try:
+                consumer = _kafka_consumer_factory(bootstrap_servers)
+                print("[metrics_exporter] Broker connection established; entering poll loop.")
+                KAFKA_STREAM_CONSUMER_CONNECTED.set(1)
+            except Exception as e:
+                print(
+                    f"[metrics_exporter] {datetime.utcnow().isoformat()}Z "
+                    f"Kafka connect failed ({e!r}); retry in 30s "
+                    f"(check SSH tunnel / autossh on :9092)."
+                )
+                KAFKA_STREAM_CONSUMER_CONNECTED.set(0)
+                time.sleep(30)
+
+        poll_failed = False
+        try:
+            while not poll_failed:
+                try:
+                    msg_pack = consumer.poll(timeout_ms=3000)
+                except (KafkaError, OSError, ConnectionError, TimeoutError, EOFError) as e:
+                    print(
+                        f"[metrics_exporter] {datetime.utcnow().isoformat()}Z "
+                        f"poll/connection error (will reconnect): {e!r}"
+                    )
+                    poll_failed = True
+                    break
+
+                KAFKA_CONSUMER_LAST_POLL_TIMESTAMP_SECONDS.set(time.time())
+
+                for tp, messages in msg_pack.items():
+                    for message in messages:
+                        try:
+                            event = parse_kafka_line(message.value)
+                        except Exception as parse_err:
+                            print(
+                                f"[metrics_exporter] parse skip: {parse_err!r}"
+                            )
+                            continue
+                        if not event:
+                            continue
+                        KAFKA_MESSAGES.inc()
+
+                        etype = event.get("type")
+                        uid = event.get("userid", "")
+
+                        if etype == "recommendation":
+                            RECOMMENDATION_EVENTS.inc()
+                            rec_timestamps.append(time.time())
+                            movies_str = event.get("movies", "")
+                            if movies_str:
+                                rec_list = [
+                                    m.strip().strip("'\" ")
+                                    for m in movies_str.split(",")
+                                    if m.strip()
+                                ]
+                                if rec_list:
+                                    user_recs[uid].append(rec_list)
+
+                        elif etype == "watch":
+                            WATCH_EVENTS.inc()
+                            mid = event.get("movieid", "")
+                            if mid and uid:
+                                user_watches[uid].add(mid)
+                                c = _movie_cost(mid, metadata)
+                                if c > 0:
+                                    TOTAL_LICENSE_COST.inc(c)
+                                    if uid in user_recs:
+                                        for rec_set in user_recs[uid]:
+                                            if mid in rec_set:
+                                                REC_ATTRIBUTED_COST.inc(c)
+                                                break
+                            minute = event.get("minute", 0)
+                            if minute > 0:
+                                watch_min_window.append(minute)
+                                if len(watch_min_window) > WINDOW_SIZE:
+                                    watch_min_window.pop(0)
+
+                        elif etype == "rating":
+                            RATING_EVENTS.inc()
+                            mid = event.get("movieid", "")
+                            rating_val = event.get("rating", 0)
+                            if mid and uid and rating_val:
+                                user_ratings[uid][mid] = rating_val
+                            if rating_val:
+                                rating_window.append(rating_val)
+                                if len(rating_window) > WINDOW_SIZE:
+                                    rating_window.pop(0)
+
+                _update_accuracy_gauges(user_recs, user_watches, user_ratings)
+                _update_drift_gauges(
+                    rating_window, watch_min_window,
+                    ref_rating_mean, ref_watch_min_mean,
+                )
+                _update_availability(rec_timestamps)
 
         except Exception as e:
-            print(f"[metrics_exporter] Error: {e}")
-            time.sleep(5)
+            print(
+                f"[metrics_exporter] {datetime.utcnow().isoformat()}Z "
+                f"unexpected error (reconnecting): {e!r}"
+            )
+            poll_failed = True
+        finally:
+            KAFKA_STREAM_CONSUMER_CONNECTED.set(0)
+            try:
+                consumer.close()
+            except Exception:
+                pass
+
+        KAFKA_CONSUMER_RECONNECTS_TOTAL.inc()
+        print(
+            f"[metrics_exporter] {datetime.utcnow().isoformat()}Z "
+            "Reconnecting consumer after 5s..."
+        )
+        time.sleep(5)
 
 
 def _update_accuracy_gauges(user_recs, user_watches, user_ratings):
