@@ -1,0 +1,35 @@
+# Git and local env
+.git
+.gitignore
+.env.tunnel
+monitoring/.env
+
+# Virtualenvs
+venv/
+.venv/
+
+# Python noise
+**/__pycache__
+*.py[cod]
+*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov/
+
+# Large / runtime (not needed inside the inference image)
+logs/
+*.log
+data/raw_logs/
+raw_data/
+kafka_2.13-*
+awscliv2.zip
+*.tgz
+
+# Old model backups — mount fresh artifacts from the host at runtime instead
+models/artifacts/backup_*/
+
+# Docs and CI (not imported by the API)
+docs/
+.github/

@@ -136,12 +136,19 @@ python3 scripts/offline_eval.py || echo "Evaluation failed, check logs"
 
 # Step 8: Graceful restart of serving process
 echo -e "\n--- Step 8: Reloading serving process ---"
-if pgrep -f "src.app:app" > /dev/null 2>&1; then
+if command -v docker >/dev/null 2>&1 && docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^mlip-recommendation$'; then
+    echo "Docker container mlip-recommendation is running — sending HUP to gunicorn..."
+    if docker kill -s HUP mlip-recommendation 2>/dev/null; then
+        echo "Container workers reloaded (zero-downtime model swap)."
+    else
+        echo "WARNING: Could not send HUP to mlip-recommendation."
+    fi
+elif pgrep -f "src.app:app" > /dev/null 2>&1; then
     echo "Sending HUP to gunicorn for graceful reload..."
     pkill -HUP -f "src.app:app" || true
     echo "Gunicorn reloaded (zero-downtime model swap)."
 else
-    echo "No gunicorn process found. Start with: bash scripts/go.sh  or  python3 -m gunicorn -w 2 -b 0.0.0.0:8082 src.app:app --timeout 120"
+    echo "No serving process found. Start with: bash scripts/go.sh  |  bash scripts/run_rec_docker.sh up  |  python3 -m gunicorn ..."
 fi
 
 echo -e "\n=============================================="
