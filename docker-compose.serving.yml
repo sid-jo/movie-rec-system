@@ -1,0 +1,29 @@
+# Recommendation API — build and run the inference container.
+# Monitoring (Prometheus/Grafana) stays in monitoring/docker-compose.yml; this file is only for serving.
+#
+# Typical VM usage (after training has produced joblibs under models/artifacts/):
+#   docker compose -f docker-compose.serving.yml up -d --build
+#
+# Reload workers after retrain or cold_start_cache update (zero downtime):
+#   bash scripts/run_rec_docker.sh reload
+#   (or: docker kill -s HUP mlip-recommendation)
+#
+services:
+  recommendation:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mlip-recommendation:latest
+    container_name: mlip-recommendation
+    ports:
+      - "${REC_SERVICE_PORT:-8082}:8082"
+    environment:
+      USER_API_BASE: ${USER_API_BASE:-http://128.2.220.241:8080}
+    volumes:
+      # Live artifacts + signup cache (host retrain / cold-start daemon update these)
+      - ./models/artifacts:/app/models/artifacts
+      # Fresh movie/user JSON from fetch_metadata / pipeline
+      - ./metadata:/app/metadata:ro
+      # A/B configs and JSONL assignment logs
+      - ./experiments:/app/experiments
+    restart: unless-stopped

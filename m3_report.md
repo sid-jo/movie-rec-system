@@ -1,8 +1,34 @@
 # Milestone 3 Report: Monitoring and Continuous Experimentation
 
+**Repository:** [cmu-seai/group-project-s26-model-impossible-1](https://github.com/cmu-seai/group-project-s26-model-impossible-1)
+
+This report matches the implementation on `main`. Remaining **operational** items before Canvas submission: keep the API up for the graded availability window (72h before + 96h after submission), ensure at least two model retrains/deploys in that window, capture a **Grafana dashboard screenshot** (availability, accuracy, cost, drift), run `python scripts/experiment_analysis.py --all` on the VM after enough traffic so experiment JSONL logs and telemetry support significance tests, and schedule the mentor debrief.
+
+---
+
 ## Containerization
 
-*[To be completed by teammate]*
+We containerize **only the inference service** (Flask + gunicorn). The Prometheus/Grafana stack remains a separate Compose file under `monitoring/` (see Monitoring).
+
+**Image:** [`Dockerfile`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/Dockerfile) — `python:3.11-slim-bookworm`, installs `requirements.txt`, copies `src/`, `metadata/`, `experiments/`, and seeded `models/artifacts/`, runs as non-root user `app`, exposes **8082**, and defines a **HEALTHCHECK** on `/health`.
+
+**Runtime:** [`docker-compose.serving.yml`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/docker-compose.serving.yml) builds `mlip-recommendation:latest`, publishes `${REC_SERVICE_PORT:-8082}:8082`, sets `USER_API_BASE`, and **bind-mounts** (so the container sees live updates without rebuilding):
+- `./models/artifacts` — joblibs, `model_version.json`, `cold_start_cache.json`
+- `./metadata` (read-only) — movie/user JSON
+- `./experiments` — active experiment JSON + JSONL logs
+
+**Zero-downtime model refresh:** Retraining updates files on the host; workers reload by sending **SIGHUP** to gunicorn inside the container ([`scripts/run_rec_docker.sh reload`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/run_rec_docker.sh) or `docker kill -s HUP mlip-recommendation`). This matches the same graceful-reload pattern used for bare-metal gunicorn in [`scripts/retrain_and_deploy.sh`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/retrain_and_deploy.sh). We do **not** run two model versions behind a separate load balancer; switching versions is “new artifacts + HUP.”
+
+```mermaid
+flowchart LR
+  subgraph host["Team VM (host)"]
+    A["models/artifacts\nmetadata\nexperiments"] --> B["Docker: mlip-recommendation\n:8082 /recommend"]
+  end
+  Course["Course clients\nKafka / graders"] --> B
+  B --> A
+```
+
+**Pointers:** [`Dockerfile`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/Dockerfile) · [`docker-compose.serving.yml`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/docker-compose.serving.yml) · [`scripts/run_rec_docker.sh`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/run_rec_docker.sh)
 
 ---
 
@@ -18,7 +44,7 @@ We fully automate model retraining via [`scripts/retrain_and_deploy.sh`](https:/
 4. **Model training:** Runs `scripts/train.py` to retrain both the NMF collaborative filtering model and the popularity model on the latest data.
 5. **Provenance recording:** Writes `models/artifacts/model_version.json` with a monotonically increasing version number, training timestamp, git SHA, SHA-256 hashes of all model artifacts, and pointers to the training data files used.
 6. **Offline evaluation:** Runs `scripts/offline_eval.py` as a sanity check on the new joblib artifacts produced by `scripts/train.py` (not the legacy `models/evaluate.py` / `.pkl` path).
-7. **Zero-downtime deployment:** Sends `SIGHUP` to the running gunicorn master (`src.app:app`), which gracefully reloads workers with the new model artifacts.
+7. **Zero-downtime deployment:** If the Docker serving container `mlip-recommendation` is running, sends **SIGHUP** to gunicorn inside it; otherwise sends `SIGHUP` to a host gunicorn process (`src.app:app`).
 
 The script is triggered by cron every 3 days (see [`scripts/crontab.txt`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/crontab.txt)):
 ```
@@ -103,7 +129,7 @@ Alerts are justified because (1) availability is directly graded (70%+ required)
 
 ### Dashboard Screenshot
 
-Include Grafana exports showing **Service Availability** (request rate, latency, uptime), **Kafka stream** (consumer connected + poll lag), **Model Accuracy** (WTR/PRR), **Operating Cost**, and **Data Drift** — matching the provisioned dashboard [`monitoring/grafana/dashboards/recommendation-service.json`](monitoring/grafana/dashboards/recommendation-service.json). After deploying on the VM, capture from `http://<vm-ip>:3000/d/rec-service-dashboard` (refresh the dashboard JSON on the server if you added panels locally).
+Include Grafana exports showing **Service Availability** (request rate, latency, uptime), **Kafka stream** (consumer connected + poll lag), **Model Accuracy** (WTR/PRR), **Operating Cost**, and **Data Drift** — matching the provisioned dashboard [`monitoring/grafana/dashboards/recommendation-service.json`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/monitoring/grafana/dashboards/recommendation-service.json). After deploying on the VM, capture from `http://<vm-ip>:3000/d/rec-service-dashboard` (refresh the dashboard JSON on the server if you added panels locally).
 
 ### Implementation Pointers
 
@@ -120,24 +146,80 @@ Include Grafana exports showing **Service Availability** (request rate, latency,
 
 ## Experimentation Infrastructure
 
-*[To be completed by teammate]*
+**Goals:** Run two concurrent online experiments required by M3 — (1) impact of **self-descriptions** on cold-start quality, (2) **license-cost**–aware re-ranking vs. satisfaction — with deterministic assignment and analysis that reports uncertainty.
+
+**Configuration:** Each experiment is a JSON file in [`experiments/`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/tree/main/experiments): [`exp_cold_start.json`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/experiments/exp_cold_start.json) and [`exp_cost_optimise.json`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/experiments/exp_cost_optimise.json). Fields include `status: active`, variant names, and `traffic_pct` (50/50).
+
+**User splitting:** [`src/experiment.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/src/experiment.py) assigns variants with a **stable hash** of `(experiment_id, user_id)` so the same user stays in the same arm for a given experiment across requests (`assign_variant`). [`ExperimentManager`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/src/experiment.py) loads all `experiments/*.json` at startup and appends one JSON line per logged assignment under `experiments/logs/<experiment_id>.jsonl` (`log_assignment`).
+
+**Request-time routing:** [`src/app.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/src/app.py) applies a **composed pipeline** so `get_recommendations` runs **once** per request:
+- **Stage 1 (`exp_cold_start`):** Treatment `no_cold_start` passes `effective_user_data = None`, disabling self-description–driven cold start; control keeps API `user_data`.
+- **Stage 2:** Base recommendations from `get_recommendations(...)`.
+- **Stage 3 (`exp_cost_optimise`):** Treatment `cost_optimised` calls `_apply_cost_rerank` from [`src/recommender_variants.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/src/recommender_variants.py); control leaves the list unchanged.
+
+**Quality tracking:** Each JSONL row records `user_id`, `variant`, and the **final** top-20 list (so both experiments attribute the same outcome list). [`scripts/experiment_analysis.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/experiment_analysis.py) joins assignments to offline telemetry in `data/processed/watches.csv` and `data/processed/ratings.csv` and movie metadata in `metadata/movies.json`, computing per-variant **Watch-Through Rate** (watched ÷ recommended slots), **Positive-Rating Rate** (rating ≥ 4 among recommended slots with ratings), mean **rating**, and mean **license cost** per recommended movie.
+
+**Statistical tests:** For **proportions** (WTR, PRR) we use a **two-proportion z-test** (large-sample normal approximation). For **means** (average rating, average recommendation cost) we use **Welch’s t-test** (unequal variances). Both are implemented without SciPy in `scripts/experiment_analysis.py`; unit coverage lives in [`tests/test_experiment.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/tests/test_experiment.py). These choices match binary/metric outcomes and avoid assuming equal variance across arms.
+
+**Operational tools:** `GET /experiments` lists active experiments. Analysis: `python scripts/experiment_analysis.py --experiment <id>` or `--all`; results JSON is written to `experiments/results/<id>_results.json` when two variants are present.
 
 ---
 
 ## Experiment Results
 
-*[To be completed by teammate]*
+### Experiment 1: Cold-start self-descriptions (`exp_cold_start`)
+
+**What changed:** Control uses the normal path (cold start can use `self_description_likes` / `self_description_dislikes` when applicable). Treatment **`no_cold_start`** strips user profile data before recommendation so the model cannot use those self-descriptions (falls back to NMF/popularity behavior).
+
+**How we answer the question:** Compare WTR, PRR, and mean rating between `control` and `no_cold_start` using the analysis script. A negative impact of removing self-descriptions supports that self-descriptions help cold-start quality.
+
+**Screenshot / link:** After sufficient traffic, run `python scripts/experiment_analysis.py --experiment exp_cold_start` on the VM and attach **terminal output** and/or **`experiments/results/exp_cold_start_results.json`**. Optionally add a Grafana panel filtered by experiment (if you export labels) — the graded artifact is the analysis output tied to JSONL + telemetry.
+
+*In-repo logs are intentionally small during development; production runs should accumulate enough JSONL rows for stable z- and t-tests.*
+
+### Experiment 2: Cost-optimised re-ranking (`exp_cost_optimise`)
+
+**What changed:** Control uses the standard ranking. Treatment **`cost_optimised`** re-ranks the same candidate list with a **70% relevance / 30% license-cost** blend (`cost_weight: 0.3` in config).
+
+**How we answer the question:** Compare **average recommendation license cost** (Welch’s t-test on per-movie costs) against **average rating** / PRR for recommended movies users rated — testing whether cheaper slates trade off satisfaction.
+
+**Screenshot / link:** Run `python scripts/experiment_analysis.py --experiment exp_cost_optimise` and include output plus cost and rating lines. Save `experiments/results/exp_cost_optimise_results.json` when generated.
 
 ---
 
 ## Provenance
 
-*[To be completed by teammate]*
+**What we must answer for any past recommendation:** (1) **model version**, (2) **pipeline / code version** used to train it, (3) **training data** references.
+
+### Mechanisms
+
+1. **Training run record:** Each retrain writes [`models/artifacts/model_version.json`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/models/artifacts/model_version.json) (see [`scripts/retrain_and_deploy.sh`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/retrain_and_deploy.sh)) with:
+   - `version` — integer incremented every retrain  
+   - `trained_at` — UTC ISO timestamp  
+   - `git_sha` / `pipeline_version` — commit of the repo used when training  
+   - `training_data` — paths to `data/processed/ratings.csv`, `watches.csv`, `metadata/movies.json`, `metadata/users.json`  
+   - `artifacts` — truncated SHA-256 hashes of `model_nmf.joblib`, `model_popularity.joblib`, `cold_start.joblib`  
+   - `backup_dir` — timestamped directory with the previous artifacts for rollback forensics  
+
+2. **Serving exposure:** On each scrape of `/metrics`, [`src/app.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/src/app.py) refreshes Prometheus **`recommendation_model` Info** metrics from `model_version.json` (`version`, `trained_at`, `git_sha`), so Grafana/Prometheus show which model bundle was live without parsing response bodies.
+
+3. **Experiment attribution:** [`experiments/logs/<experiment_id>.jsonl`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/tree/main/experiments/logs) stores, per request, `user_id`, `variant`, and the recommendation list. Together with the **Kafka** course log line (`recommendation request … result: …`), staff can align a logged recommendation with an experiment arm.
+
+4. **Course public log:** The Kafka stream records each recommendation response and latency; that is the external ground truth for “what was served” at time *T*.
+
+### Concrete example (illustrative)
+
+- **Kafka line (course stream):** At some time *T*, user `70106` receives a 200 response with a comma-separated list of movie IDs (matches course format).  
+- **Experiment log:** [`experiments/logs/exp_cold_start.jsonl`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/experiments/logs/exp_cold_start.jsonl) contains a row with `"user_id": "70106"`, `"variant": "control"`, and the same ordered IDs as in that response window — confirming which cold-start arm applied.  
+- **Model + pipeline + data:** On the VM at *T*, open `models/artifacts/model_version.json`. Example fields: `"version": <n>`, `"git_sha": "<40-char commit>"`, `"training_data": { "ratings_csv": "data/processed/ratings.csv", ... }`, and artifact hashes. That commit in GitHub is the **pipeline / algorithm** snapshot; the CSV paths identify the **training snapshot** (plus `backup_dir` for the exact previous joblib files).
+
+Staff can therefore: correlate Kafka → JSONL variant → `model_version.json` + git SHA + hashed joblibs.
+
+**Pointers:** [`scripts/retrain_and_deploy.sh`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/retrain_and_deploy.sh) · [`src/app.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/src/app.py) (`MODEL_INFO`, `_load_model_info`) · [`src/experiment.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/src/experiment.py) (`log_assignment`)
 
 ---
 
 ## Team Contract Update
 
 No update to team contract.
-
 
