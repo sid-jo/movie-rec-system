@@ -237,3 +237,5 @@ Staff can therefore: correlate Kafka → JSONL variant → `model_version.json` 
 
 No update to team contract.
 
+[Meeting Notes](https://docs.google.com/document/d/19sJeAmOdLmlZRN7UWzhd4EcEVrX_t8T8Ji1T2-fSA-Q/edit?usp=drive_link)
+
