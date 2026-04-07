@@ -1,0 +1,47 @@
+{
+  "experiment_id": "exp_cold_start",
+  "analysed_at": "2026-04-06T23:34:57.328473",
+  "records_analysed": 2000,
+  "variants": {
+    "control": {
+      "n_users": 1036,
+      "total_recs": 20720,
+      "wtr": 0.02944015444015444,
+      "prr": 0.017664092664092666,
+      "avg_rating": 4.378731343283582,
+      "avg_rec_cost": 0.14841856811652027,
+      "avg_cost_watched": 0.23010160875081967
+    },
+    "no_cold_start": {
+      "n_users": 964,
+      "total_recs": 19280,
+      "wtr": 0.03200207468879668,
+      "prr": 0.021473029045643154,
+      "avg_rating": 4.572463768115942,
+      "avg_rec_cost": 0.15046292404765044,
+      "avg_cost_watched": 0.23201080921717987
+    }
+  },
+  "statistical_tests": {
+    "wtr_z_test": {
+      "z": -1.4847625617158935,
+      "p_value": 0.13760673253655442,
+      "significant": false
+    },
+    "prr_z_test": {
+      "z": -2.7528402457737795,
+      "p_value": 0.005908071843790941,
+      "significant": true
+    },
+    "rating_t_test": {
+      "t": -1.4599047837040597,
+      "p_value": 0.14431624433849866,
+      "significant": false
+    },
+    "cost_t_test": {
+      "t": -1.3838792448172876,
+      "p_value": 0.1663954329711146,
+      "significant": false
+    }
+  }
+}

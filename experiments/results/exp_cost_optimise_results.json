@@ -1,0 +1,47 @@
+{
+  "experiment_id": "exp_cost_optimise",
+  "analysed_at": "2026-04-06T23:37:48.044943",
+  "records_analysed": 2000,
+  "variants": {
+    "control": {
+      "n_users": 989,
+      "total_recs": 19780,
+      "wtr": 0.03008088978766431,
+      "prr": 0.019110212335692617,
+      "avg_rating": 4.542533081285444,
+      "avg_rec_cost": 0.14604117623986856,
+      "avg_cost_watched": 0.22769172532100843
+    },
+    "cost_optimised": {
+      "n_users": 1011,
+      "total_recs": 20220,
+      "wtr": 0.03095944609297725,
+      "prr": 0.019782393669634024,
+      "avg_rating": 4.372759856630824,
+      "avg_rec_cost": 0.13618207599698812,
+      "avg_cost_watched": 0.21700438189616614
+    }
+  },
+  "statistical_tests": {
+    "wtr_z_test": {
+      "z": -0.5106780367343411,
+      "p_value": 0.6095765224300309,
+      "significant": false
+    },
+    "prr_z_test": {
+      "z": -0.4867046516036963,
+      "p_value": 0.6264676483378502,
+      "significant": false
+    },
+    "rating_t_test": {
+      "t": 1.2864137598720962,
+      "p_value": 0.1982986987644879,
+      "significant": false
+    },
+    "cost_t_test": {
+      "t": 7.3207082252489375,
+      "p_value": 2.466915560717098e-13,
+      "significant": true
+    }
+  }
+}

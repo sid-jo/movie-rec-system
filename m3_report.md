@@ -77,9 +77,9 @@ The script supports two modes:
 
 **Dashboard screenshots (availability + accuracy + cost + drift):**
 
-![Figure 1 — Service availability (up, uptime, request rate, latency), Kafka stream health, model accuracy (WTR/PRR, distribution)](assets/m3_grafana_availability_kafka_accuracy.png)
+![Figure 1 — Service availability (up, uptime, request rate, latency), Kafka stream health, model accuracy (WTR/PRR, distribution)](docs/report_figures/m3_grafana_availability_kafka_accuracy.png)
 
-![Figure 2 — Model accuracy (WTR/PRR), operating cost (license totals and $/min), data drift means and drift alert status](assets/m3_grafana_cost_drift.png)
+![Figure 2 — Model accuracy (WTR/PRR), operating cost (license totals and $/min), data drift means and drift alert status](docs/report_figures/m3_grafana_cost_drift.png)
 
 ### Infrastructure Setup
 
@@ -177,7 +177,7 @@ Alerts are justified because (1) availability is directly graded (70%+ required)
 
 **Result evidence (terminal run on VM):**
 
-![Experiment 1 result — exp_cold_start analysis output](assets/Screenshot_2026-04-06_at_11.10.35_PM-14f92168-4623-4e07-8364-628d54851964.png)
+![Experiment 1 result — exp_cold_start analysis output](docs/report_figures/M3-ss1.png)
 
 *In-repo logs are intentionally small during development; production runs should accumulate enough JSONL rows for stable z- and t-tests.*
 
@@ -189,7 +189,7 @@ Alerts are justified because (1) availability is directly graded (70%+ required)
 
 **Result evidence (terminal run on VM):**
 
-![Experiment 2 result — exp_cost_optimise analysis output](assets/Screenshot_2026-04-06_at_11.11.16_PM-e6f541f3-b73f-4e76-a4c4-93126a43b2ba.png)
+![Experiment 2 result — exp_cost_optimise analysis output](docs/report_figures/M3-ss2.png)
 
 ---
 
