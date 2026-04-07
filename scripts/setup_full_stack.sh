@@ -11,6 +11,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$PROJECT_ROOT"
+export PYTHONPATH="$PROJECT_ROOT"
 
 KAFKA_SSH_HOST="${KAFKA_SSH_HOST:-128.2.220.241}"
 KAFKA_SSH_USER="${KAFKA_SSH_USER:-tunnel}"
@@ -25,6 +26,9 @@ REQUIRE_KAFKA_TUNNEL="${REQUIRE_KAFKA_TUNNEL:-0}"
 AUTO_INSTALL_CRON="${AUTO_INSTALL_CRON:-0}"
 # If 8082 has the wrong process (404 on /metrics), reclaim the port before starting gunicorn.
 AUTO_RECLAIM_API_PORT="${AUTO_RECLAIM_API_PORT:-0}"
+# When 1 (set by go.sh): exit non-zero if /metrics never exposes Prometheus text for src.app.
+VERIFY_API_METRICS="${VERIFY_API_METRICS:-0}"
+GUNICORN_WORKERS="${GUNICORN_WORKERS:-4}"
 
 mkdir -p "$PROJECT_ROOT/logs"
 
@@ -108,14 +112,18 @@ else
 fi
 
 # --- Gunicorn (must expose /health and /metrics for Prometheus + Grafana) ---
+# Stricter than "any #": wrong apps often return 404 HTML or non-Prometheus bodies on /metrics.
 _api_ok() {
-  curl -sf --max-time 10 "http://127.0.0.1:${REC_SERVICE_PORT}/health" >/dev/null 2>&1 \
-    && curl -sf --max-time 10 "http://127.0.0.1:${REC_SERVICE_PORT}/metrics" 2>/dev/null | head -1 | grep -q '#'
+  curl -sf --max-time 10 "http://127.0.0.1:${REC_SERVICE_PORT}/health" >/dev/null 2>&1 || return 1
+  local body
+  body="$(curl -sf --max-time 12 "http://127.0.0.1:${REC_SERVICE_PORT}/metrics" 2>/dev/null)" || return 1
+  echo "$body" | grep -qE '^# HELP|^# TYPE|recommendation_requests_total' || return 1
+  return 0
 }
 
 _start_gunicorn() {
-  echo "[api] Starting gunicorn on 0.0.0.0:${REC_SERVICE_PORT} (src.app:app)..."
-  nohup "$PYTHON" -m gunicorn -w 2 -b "0.0.0.0:${REC_SERVICE_PORT}" src.app:app \
+  echo "[api] Starting gunicorn on 0.0.0.0:${REC_SERVICE_PORT} (${GUNICORN_WORKERS} workers, src.app:app)..."
+  nohup "$PYTHON" -m gunicorn -w "${GUNICORN_WORKERS}" -b "0.0.0.0:${REC_SERVICE_PORT}" src.app:app \
     --timeout 120 --graceful-timeout 30 \
     --access-logfile logs/gunicorn_access.log \
     --error-logfile logs/gunicorn_error.log \
@@ -125,26 +133,48 @@ _start_gunicorn() {
 }
 
 if _api_ok; then
-  echo "[api] OK on :${REC_SERVICE_PORT} (/health + /metrics)."
+  echo "[api] OK on :${REC_SERVICE_PORT} (/health + Prometheus /metrics)."
 else
-  if command -v ss >/dev/null 2>&1 && ss -tln 2>/dev/null | grep -q ":${REC_SERVICE_PORT} "; then
-    echo "[api] Port ${REC_SERVICE_PORT} is in use but this is not our API (bad /health or /metrics)."
-    if [ "$AUTO_RECLAIM_API_PORT" = "1" ] && [ -x "$SCRIPT_DIR/reclaim_api_port.sh" ]; then
-      bash "$SCRIPT_DIR/reclaim_api_port.sh" || true
-    else
-      echo "[api] Run:  sudo bash scripts/reclaim_api_port.sh"
-      echo "     Then: bash scripts/setup_full_stack.sh"
-      echo "     Or:   AUTO_RECLAIM_API_PORT=1 bash scripts/go.sh"
+  attempt=1
+  while [ "$attempt" -le 3 ] && ! _api_ok; do
+    echo "[api] Pass ${attempt}/3: ensuring port ${REC_SERVICE_PORT} is our src.app (not 404 impostor)..."
+    if command -v ss >/dev/null 2>&1 && ss -tln 2>/dev/null | grep -q ":${REC_SERVICE_PORT} "; then
+      if [ "$AUTO_RECLAIM_API_PORT" = "1" ] && [ -x "$SCRIPT_DIR/reclaim_api_port.sh" ]; then
+        REC_SERVICE_PORT="$REC_SERVICE_PORT" bash "$SCRIPT_DIR/reclaim_api_port.sh" || true
+      else
+        echo "[api] Port busy — run:  sudo REC_SERVICE_PORT=${REC_SERVICE_PORT} bash scripts/reclaim_api_port.sh"
+        echo "     Or:  AUTO_RECLAIM_API_PORT=1 bash scripts/go.sh"
+      fi
     fi
-  fi
+    if ! _api_ok; then
+      _start_gunicorn
+    fi
+    attempt=$((attempt + 1))
+    sleep 2
+  done
   if ! _api_ok; then
-    _start_gunicorn
-  fi
-  if ! _api_ok; then
-    echo "[api] WARNING: Still not healthy. Check logs/gunicorn_error.log"
+    echo "[api] WARNING: Still not healthy after 3 passes. Check logs/gunicorn_error.log"
+    echo "     curl -i http://127.0.0.1:${REC_SERVICE_PORT}/metrics"
   else
-    echo "[api] OK after start."
+    echo "[api] OK after start/reclaim."
   fi
+fi
+
+if [ "$VERIFY_API_METRICS" = "1" ]; then
+  echo "[api] Verifying /metrics for Prometheus (up to ~40s)..."
+  ok=0
+  for _i in $(seq 1 20); do
+    if _api_ok; then
+      ok=1
+      break
+    fi
+    sleep 2
+  done
+  if [ "$ok" != "1" ]; then
+    echo "[api] FATAL: Prometheus scrape will fail (404/wrong app). Fix port ${REC_SERVICE_PORT} and re-run go.sh."
+    exit 1
+  fi
+  echo "[api] Verified: /metrics exposes recommendation_* series."
 fi
 
 # --- Metrics exporter ---

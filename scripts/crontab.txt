@@ -1,18 +1,23 @@
-# Recommendation service cron jobs — install with: bash scripts/install_crontab.sh
-# For resilient Kafka SSH tunnels after drops, install once: bash scripts/install_autossh.sh
-# Retrain every 3 days at 02:00 UTC; cold-start oneshot every 30 min; health every 5 min.
+# Install: bash scripts/install_crontab.sh
+# keepalive: every 2 min — tunnel recycle, Docker/Prometheus, gunicorn, metrics_exporter, cold-start (backup if anything dies).
+# For resilient SSH to Kafka: bash scripts/install_autossh.sh (once per VM).
 
 PROJECT_ROOT=__PROJECT_ROOT__
 
-# Keep Kafka SSH tunnel alive (required for metrics exporter, cold-start, retrain ingest)
-@reboot sleep 90 && cd $PROJECT_ROOT && bash scripts/ensure_kafka_tunnel.sh >> logs/tunnel.log 2>&1
+# Full stack recovery after reboot (tunnel + services; Docker needs sudo or docker group)
+@reboot sleep 120 && cd $PROJECT_ROOT && bash scripts/reboot_recover.sh >> logs/reboot_recover.log 2>&1
+
+# Frequent health pass (primary backup for disconnects / dead exporter)
+*/2 * * * * cd $PROJECT_ROOT && bash scripts/keepalive.sh >> logs/keepalive.log 2>&1
+
+# Extra tunnel attempt every 5 min (idempotent; complements keepalive)
 */5 * * * * cd $PROJECT_ROOT && bash scripts/ensure_kafka_tunnel.sh >> logs/tunnel.log 2>&1
 
-# Retrain models every 3 days at 2:00 AM UTC
-0 2 */3 * * cd $PROJECT_ROOT && bash scripts/retrain_and_deploy.sh --skip-pull >> logs/cron_retrain.log 2>&1
-
-# Cold-start updater: every 30 minutes, process signups for 5 minutes (complements continuous daemon)
-*/30 * * * * cd $PROJECT_ROOT && bash scripts/ensure_kafka_tunnel.sh >> logs/tunnel.log 2>&1 && python3 scripts/update_cold_start.py --mode oneshot --duration 300 >> logs/cron_cold_start.log 2>&1
-# Health check: ping service every 5 minutes, restart if down
+# API health: if /health fails, restart gunicorn (belt-and-suspenders with keepalive)
 */5 * * * * curl -sf http://localhost:8082/health > /dev/null || (cd $PROJECT_ROOT && bash scripts/restart_service.sh >> logs/cron_restart.log 2>&1)
 
+# Retrain every 3 days 02:00 UTC
+0 2 */3 * * cd $PROJECT_ROOT && bash scripts/retrain_and_deploy.sh --skip-pull >> logs/cron_retrain.log 2>&1
+
+# Cold-start oneshot every 30 min (5 min window; complements continuous daemon from keepalive)
+*/30 * * * * cd $PROJECT_ROOT && bash scripts/ensure_kafka_tunnel.sh >> logs/tunnel.log 2>&1 && python3 scripts/update_cold_start.py --mode oneshot --duration 300 >> logs/cron_cold_start.log 2>&1

@@ -109,17 +109,62 @@ _dc pull -q 2>/dev/null || true
 _dc up -d --force-recreate prometheus grafana alertmanager
 
 cd "$ROOT"
-echo "== 2/2: API + metrics + cron (no sudo) =="
+echo "== 2/4: API + metrics + cron (no sudo) =="
 export AUTO_INSTALL_CRON="${AUTO_INSTALL_CRON:-1}"
 export REQUIRE_KAFKA_TUNNEL="${REQUIRE_KAFKA_TUNNEL:-0}"
 export AUTO_RECLAIM_API_PORT="${AUTO_RECLAIM_API_PORT:-1}"
+export VERIFY_API_METRICS="${VERIFY_API_METRICS:-1}"
+export AUTO_INSTALL_AUTOSSH="${AUTO_INSTALL_AUTOSSH:-1}"
 # setup_full_stack reads monitoring/.env for Prometheus URL checks
 export PROMETHEUS_HOST_PORT GRAFANA_HOST_PORT ALERTMANAGER_HOST_PORT
 bash scripts/setup_full_stack.sh
 
 echo ""
+echo "== 3/4: Keepalive pass (tunnel, exporter, cold-start, Docker if needed) =="
+bash scripts/keepalive.sh || true
+
+echo ""
+echo "== 4/4: Scrape check (host :8082 == Prometheus host.docker.internal:8082) =="
+REC_PORT="${REC_SERVICE_PORT:-8082}"
+_scrape_ok() {
+  curl -sf --max-time 8 "http://127.0.0.1:${REC_PORT}/metrics" 2>/dev/null | grep -qE '^# HELP|^# TYPE|recommendation_requests_total'
+}
+if _scrape_ok; then
+  echo "OK — /metrics on :${REC_PORT} is valid Prometheus text (recommendation-service target should go UP)."
+else
+  echo "WARN — /metrics still wrong; running reclaim + one gunicorn start..."
+  REC_SERVICE_PORT="$REC_PORT" bash scripts/reclaim_api_port.sh || true
+  export PYTHONPATH="$ROOT"
+  nohup python3 -m gunicorn -w "${GUNICORN_WORKERS:-4}" -b "0.0.0.0:${REC_PORT}" src.app:app \
+    --timeout 120 --graceful-timeout 30 \
+    --access-logfile logs/gunicorn_access.log \
+    --error-logfile logs/gunicorn_error.log \
+    --pid /tmp/gunicorn_rec.pid \
+    >/dev/null 2>&1 &
+  sleep 4
+  if _scrape_ok; then
+    echo "OK — /metrics fixed after reclaim + gunicorn."
+  else
+    echo "FATAL — still broken. Run: sudo REC_SERVICE_PORT=${REC_PORT} bash scripts/reclaim_api_port.sh"
+    echo "        then: bash scripts/go.sh"
+    exit 1
+  fi
+fi
+
+# Same path Prometheus uses from Docker (Linux host-gateway)
+if sudo docker ps --format '{{.Names}}' 2>/dev/null | grep -qx prometheus; then
+  if sudo docker exec prometheus wget -qO- -T 5 "http://host.docker.internal:${REC_PORT}/metrics" 2>/dev/null | grep -qE '^# HELP|recommendation_requests_total'; then
+    echo "OK — prometheus container can reach host.docker.internal:${REC_PORT}/metrics"
+  else
+    echo "WARN — in-container wget to host.docker.internal failed (check extra_hosts: host-gateway in compose)."
+  fi
+fi
+
+echo ""
 echo "Open Grafana:     http://127.0.0.1:${GRAFANA_HOST_PORT}  (admin / mlip2026)"
 echo "Prometheus UI:    http://127.0.0.1:${PROMETHEUS_HOST_PORT}/targets"
 echo "Alertmanager:     http://127.0.0.1:${ALERTMANAGER_HOST_PORT}"
-echo "API health:       curl -s http://127.0.0.1:8082/health"
+echo "API health:       curl -s http://127.0.0.1:${REC_PORT}/health"
+echo "API metrics:      curl -s http://127.0.0.1:${REC_PORT}/metrics | head"
+echo "Cron keepalive:   installed if AUTO_INSTALL_CRON=1 — VM stays up after you disconnect."
 echo "(Host ports saved in monitoring/.env — re-used on the next go.sh run.)"

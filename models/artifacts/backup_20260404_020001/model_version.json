@@ -1,0 +1,18 @@
+{
+  "version": 3,
+  "trained_at": "2026-04-01T06:06:26.745745Z",
+  "git_sha": "33ea2edd",
+  "pipeline_version": "33ea2edd",
+  "training_data": {
+    "ratings_csv": "data/processed/ratings.csv",
+    "watches_csv": "data/processed/watches.csv",
+    "movies_json": "metadata/movies.json",
+    "users_json": "metadata/users.json"
+  },
+  "artifacts": {
+    "model_nmf": "a9ade5039430",
+    "model_popularity": "36253a265b71",
+    "cold_start": "86f8c1b1af14"
+  },
+  "backup_dir": "/home/ryanw3/group-project-s26-model-impossible-1/models/artifacts/backup_20260401_020001"
+}
