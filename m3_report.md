@@ -2,7 +2,7 @@
 
 **Repository:** [cmu-seai/group-project-s26-model-impossible-1](https://github.com/cmu-seai/group-project-s26-model-impossible-1)
 
-This report matches the implementation on `main`. Remaining **operational** items before Canvas submission: keep the API up for the graded availability window (72h before + 96h after submission), ensure at least two model retrains/deploys in that window, capture a **Grafana dashboard screenshot** (availability, accuracy, cost, drift), run `python scripts/experiment_analysis.py --all` on the VM after enough traffic so experiment JSONL logs and telemetry support significance tests, and schedule the mentor debrief.
+This report matches the implementation on `main`.
 
 ---
 
@@ -33,10 +33,6 @@ flowchart LR
 ---
 
 ## Automated Model Updates
-
-**(Course rubric — ~0.5 pages.)** We **automatically retrain and deploy** by running a single pipeline on a schedule: ingest recent live traffic from Kafka `movielog2`, refresh movie/user metadata, back up current joblibs, train NMF + popularity with [`scripts/train.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/train.py), record provenance in [`models/artifacts/model_version.json`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/models/artifacts/model_version.json), sanity-check with [`scripts/offline_eval.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/offline_eval.py), then **reload serving without dropping the listening socket** (SIGHUP to gunicorn in the Docker serving container or on the host). Cron fires this every three days ([`scripts/crontab.txt`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/crontab.txt)). **Self-descriptions for new users** are handled **continuously**: [`scripts/update_cold_start.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/update_cold_start.py) tails `movielog2` for `create_account`, fetches each user’s `self_description_likes` / `self_description_dislikes` from the course User API, matches mentioned titles to movie IDs using `cold_start.joblib`, and writes personalized top-20 lists to [`models/artifacts/cold_start_cache.json`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/models/artifacts/cold_start_cache.json) (daemon + periodic oneshot in cron). VM **uptime** for tunnel, API, and exporter is supported by [`scripts/go.sh`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/go.sh) (one-shot bring-up) and [`scripts/keepalive.sh`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/keepalive.sh) (cron), so the stack keeps running after laptops disconnect.
-
-**Direct implementation links:** [retrain_and_deploy.sh](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/retrain_and_deploy.sh) · [update_cold_start.py](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/update_cold_start.py) · [crontab.txt](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/crontab.txt) · [go.sh](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/go.sh) · [keepalive.sh](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/keepalive.sh) · [run_rec_docker.sh](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/run_rec_docker.sh) (container HUP)
 
 ### Retraining Pipeline
 
@@ -79,15 +75,11 @@ The script supports two modes:
 
 ## Monitoring
 
-**(Course rubric — ~0.5 pages text, figures below.)** **Infrastructure:** **Prometheus** scrapes two targets on the team VM: the recommendation **Flask/gunicorn** app on **host :8082** (`/metrics`, reached from the Prometheus container as `host.docker.internal` per [`monitoring/docker-compose.yml`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/monitoring/docker-compose.yml) + [`monitoring/prometheus.yml`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/monitoring/prometheus.yml)), and a **Kafka-backed exporter** on **:8083** ([`monitoring/metrics_exporter.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/monitoring/metrics_exporter.py)) that consumes `movielog2` through an SSH tunnel ([`scripts/ensure_kafka_tunnel.sh`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/ensure_kafka_tunnel.sh), **autossh** recommended). **Grafana** is provisioned from JSON ([`monitoring/grafana/dashboards/recommendation-service.json`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/monitoring/grafana/dashboards/recommendation-service.json)). **What we monitor:** **(a) Availability** — target up, 24h uptime, HTTP request rate by model, Kafka recommendation-event rate, Kafka consumer connectivity/poll lag; **(b) model accuracy (online proxies)** — WTR, PRR, model mix; **(c) cost** — cumulative license cost and rec-attributed cost plus $/min rates from watch telemetry (no external **LLM** on the inference path, so token cost is **$0**; license fees match M2-style telemetry); **(d) data drift** — rolling rating and watch-duration means and binary drift indicators. **Alerts** ([`monitoring/alerts.yml`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/monitoring/alerts.yml), routed via [`monitoring/alertmanager.yml`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/monitoring/alertmanager.yml)) cover scrape failures, service down, missing Kafka traffic, high errors/latency, and sustained drift — **because** course grading stresses **availability**, the handout allows **data-quality injections**, and silent exporter/tunnel failure would otherwise hide cost/accuracy/drift. **Live dashboard:** `http://<vm-ip>:<GRAFANA_HOST_PORT>/d/rec-service-dashboard` (default admin / mlip2026 unless changed; share with mentor privately per course instructions). **Bring-up / resilience:** [`scripts/go.sh`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/go.sh), [`scripts/keepalive.sh`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/scripts/keepalive.sh).
-
 **Dashboard screenshots (availability + accuracy + cost + drift):**
 
-![Figure 1 — Service availability (up, uptime, request rate, latency), Kafka stream health, model accuracy (WTR/PRR, distribution)](docs/report_figures/m3_grafana_availability_kafka_accuracy.png)
+![Figure 1 — Service availability (up, uptime, request rate, latency), Kafka stream health, model accuracy (WTR/PRR, distribution)](assets/m3_grafana_availability_kafka_accuracy.png)
 
-![Figure 2 — Model accuracy (WTR/PRR), operating cost (license totals and $/min), data drift means and drift alert status](docs/report_figures/m3_grafana_cost_drift.png)
-
-*Submitting to Canvas/PDF:* copy your two Grafana exports into `docs/report_figures/` using the filenames above (or update the markdown paths). If the images are not in-repo, embed the same PNGs in the PDF manually and keep this section text.
+![Figure 2 — Model accuracy (WTR/PRR), operating cost (license totals and $/min), data drift means and drift alert status](assets/m3_grafana_cost_drift.png)
 
 ### Infrastructure Setup
 
@@ -141,10 +133,6 @@ We configured Prometheus alerting rules in [`monitoring/alerts.yml`](https://git
 
 Alerts are justified because (1) availability is directly graded (70%+ required), (2) the course explicitly states they may inject data quality issues, and (3) cost spikes could indicate anomalous behavior. The 2-minute and 5-minute `for` durations prevent false positives from brief network blips.
 
-### Dashboard Screenshot
-
-The **figures at the start of this Monitoring section** are the primary submission captures. They must show **availability**, **model accuracy**, **cost**, and **data drift** as required. Full dashboard JSON: [`monitoring/grafana/dashboards/recommendation-service.json`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/monitoring/grafana/dashboards/recommendation-service.json). Capture from `http://<vm-ip>:<GRAFANA_HOST_PORT>/d/rec-service-dashboard` after `git pull` on the VM so rows match `main`.
-
 ### Implementation Pointers
 
 - Flask Prometheus instrumentation: [`src/app.py`](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/src/app.py) (lines 23-57)
@@ -187,7 +175,9 @@ The **figures at the start of this Monitoring section** are the primary submissi
 
 **How we answer the question:** Compare WTR, PRR, and mean rating between `control` and `no_cold_start` using the analysis script. A negative impact of removing self-descriptions supports that self-descriptions help cold-start quality.
 
-**Screenshot / link:** After sufficient traffic, run `python scripts/experiment_analysis.py --experiment exp_cold_start` on the VM and attach **terminal output** and/or **`experiments/results/exp_cold_start_results.json`**. Optionally add a Grafana panel filtered by experiment (if you export labels) — the graded artifact is the analysis output tied to JSONL + telemetry.
+**Result evidence (terminal run on VM):**
+
+![Experiment 1 result — exp_cold_start analysis output](assets/Screenshot_2026-04-06_at_11.10.35_PM-14f92168-4623-4e07-8364-628d54851964.png)
 
 *In-repo logs are intentionally small during development; production runs should accumulate enough JSONL rows for stable z- and t-tests.*
 
@@ -197,7 +187,9 @@ The **figures at the start of this Monitoring section** are the primary submissi
 
 **How we answer the question:** Compare **average recommendation license cost** (Welch’s t-test on per-movie costs) against **average rating** / PRR for recommended movies users rated — testing whether cheaper slates trade off satisfaction.
 
-**Screenshot / link:** Run `python scripts/experiment_analysis.py --experiment exp_cost_optimise` and include output plus cost and rating lines. Save `experiments/results/exp_cost_optimise_results.json` when generated.
+**Result evidence (terminal run on VM):**
+
+![Experiment 2 result — exp_cost_optimise analysis output](assets/Screenshot_2026-04-06_at_11.11.16_PM-e6f541f3-b73f-4e76-a4c4-93126a43b2ba.png)
 
 ---
 
