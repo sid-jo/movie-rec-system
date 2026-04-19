@@ -1,0 +1,731 @@
+{
+  "generated_at": "2026-04-19T21:03:53.847105+00:00",
+  "elapsed_sec": 109.6,
+  "inputs": {
+    "log_dir": "data/raw_logs",
+    "rec_log_dir": null,
+    "max_files": null,
+    "min_catalog": 20
+  },
+  "catalog_bias": {
+    "total_titles": 10676,
+    "top_languages": [
+      [
+        "en",
+        9082
+      ],
+      [
+        "fr",
+        447
+      ],
+      [
+        "ja",
+        221
+      ],
+      [
+        "it",
+        136
+      ],
+      [
+        "es",
+        122
+      ],
+      [
+        "de",
+        115
+      ],
+      [
+        "cn",
+        66
+      ],
+      [
+        "zh",
+        60
+      ],
+      [
+        "hi",
+        57
+      ],
+      [
+        "sv",
+        47
+      ]
+    ],
+    "top_countries": [
+      [
+        "US",
+        7577
+      ],
+      [
+        "GB",
+        690
+      ],
+      [
+        "FR",
+        483
+      ],
+      [
+        "CA",
+        345
+      ],
+      [
+        "JP",
+        230
+      ],
+      [
+        "DE",
+        163
+      ],
+      [
+        "IT",
+        149
+      ],
+      [
+        "AU",
+        131
+      ],
+      [
+        "ES",
+        83
+      ],
+      [
+        "HK",
+        79
+      ]
+    ],
+    "budget_zero_share": 0.3756088422630199,
+    "adult_counts": {
+      "false": 10676
+    }
+  },
+  "user_bias": {
+    "total_users": 46258,
+    "gender_counts": {
+      "M": 38402,
+      "F": 7856
+    },
+    "age_bucket_counts": {
+      "26-40": 35753,
+      "18-25": 7560,
+      "41-60": 1581,
+      "<18": 556,
+      "60+": 808
+    },
+    "top_occupations": [
+      [
+        "college/grad student",
+        11124
+      ],
+      [
+        "executive/managerial",
+        8987
+      ],
+      [
+        "sales/marketing",
+        6140
+      ],
+      [
+        "scientist",
+        4502
+      ],
+      [
+        "other or not specified",
+        3116
+      ],
+      [
+        "self-employed",
+        3067
+      ],
+      [
+        "academic/educator",
+        1768
+      ],
+      [
+        "homemaker",
+        1296
+      ],
+      [
+        "artist",
+        1260
+      ],
+      [
+        "K-12 student",
+        1126
+      ]
+    ]
+  },
+  "engagement_by_gender": {
+    "M": {
+      "n_users": 17483,
+      "mean_watch_per_user": 1657.6778012926843,
+      "ci_watch_per_user": [
+        1646.9945661499742,
+        1668.8311502602528
+      ],
+      "median_watch_per_user": 1940.0,
+      "rating_users": 17265,
+      "mean_rating_per_user": 7.20191309690024,
+      "ci_rating_per_user": [
+        7.183974221545764,
+        7.218626316825252
+      ]
+    },
+    "F": {
+      "n_users": 3611,
+      "mean_watch_per_user": 1604.1966214345057,
+      "ci_watch_per_user": [
+        1579.3004707837165,
+        1628.8019939075048
+      ],
+      "median_watch_per_user": 1876.0,
+      "rating_users": 3566,
+      "mean_rating_per_user": 7.325687802679806,
+      "ci_rating_per_user": [
+        7.287605610620879,
+        7.3647246561784385
+      ]
+    }
+  },
+  "engagement_by_age": {
+    "26-40": {
+      "n_users": 16352,
+      "mean_watch_per_user": 1651.2143468688846,
+      "ci_watch_per_user": [
+        1639.4135273972602,
+        1662.029537671233
+      ],
+      "median_watch_per_user": 1934.0,
+      "rating_users": 16162,
+      "mean_rating_per_user": 7.205928890300642,
+      "ci_rating_per_user": [
+        7.188324393831152,
+        7.2230178759869315
+      ]
+    },
+    "18-25": {
+      "n_users": 3403,
+      "mean_watch_per_user": 1655.6297384660593,
+      "ci_watch_per_user": [
+        1632.2679988245666,
+        1679.5456949750221
+      ],
+      "median_watch_per_user": 1950.0,
+      "rating_users": 3353,
+      "mean_rating_per_user": 7.255706772517628,
+      "ci_rating_per_user": [
+        7.216092861792845,
+        7.293303558746224
+      ]
+    },
+    "<18": {
+      "n_users": 263,
+      "mean_watch_per_user": 1656.745247148289,
+      "ci_watch_per_user": [
+        1581.9695817490494,
+        1750.8136882129277
+      ],
+      "median_watch_per_user": 1962.0,
+      "rating_users": 263,
+      "mean_rating_per_user": 7.340210567562714,
+      "ci_rating_per_user": [
+        7.197228226817451,
+        7.484477283073794
+      ]
+    },
+    "41-60": {
+      "n_users": 698,
+      "mean_watch_per_user": 1592.2392550143265,
+      "ci_watch_per_user": [
+        1536.2564469914041,
+        1646.7679083094556
+      ],
+      "median_watch_per_user": 1784.5,
+      "rating_users": 679,
+      "mean_rating_per_user": 7.255205670120781,
+      "ci_rating_per_user": [
+        7.176940216525896,
+        7.339281685390172
+      ]
+    },
+    "60+": {
+      "n_users": 378,
+      "mean_watch_per_user": 1566.3042328042327,
+      "ci_watch_per_user": [
+        1492.526455026455,
+        1633.9920634920634
+      ],
+      "median_watch_per_user": 1651.0,
+      "rating_users": 374,
+      "mean_rating_per_user": 7.5322587159551775,
+      "ci_rating_per_user": [
+        7.419866848361927,
+        7.656592597227169
+      ]
+    }
+  },
+  "gender_rating_welch_t": {
+    "t": -5.784259063888496,
+    "p_value": 7.2832628816854594e-09,
+    "diff": -0.12377470577956551,
+    "mean1": 7.20191309690024,
+    "mean2": 7.325687802679806,
+    "n1": 17265,
+    "n2": 3566
+  },
+  "exposure_parity_language": {
+    "per_value": {
+      "pt": {
+        "catalog_count": 13,
+        "catalog_share": 0.0012176845260397152,
+        "play_count": 43231,
+        "play_share": 0.0012432012655455875,
+        "ratio": 1.0209551316126686
+      },
+      "tl": {
+        "catalog_count": 1,
+        "catalog_share": 9.366804046459348e-05,
+        "play_count": 408,
+        "play_share": 1.1732925825046834e-05,
+        "ratio": 0.1252607161082
+      },
+      "en": {
+        "catalog_count": 9082,
+        "catalog_share": 0.850693143499438,
+        "play_count": 33151728,
+        "play_share": 0.953349915676785,
+        "ratio": 1.1206742677565906
+      },
+      "hy": {
+        "catalog_count": 1,
+        "catalog_share": 9.366804046459348e-05,
+        "play_count": 81,
+        "play_share": 2.3293308623254743e-06,
+        "ratio": 0.024867936286186765
+      },
+      "pl": {
+        "catalog_count": 13,
+        "catalog_share": 0.0012176845260397152,
+        "play_count": 1826,
+        "play_share": 5.251059450131255e-05,
+        "ratio": 0.043123315915077905
+      },
+      "xx": {
+        "catalog_count": 2,
+        "catalog_share": 0.00018733608092918696,
+        "play_count": 184,
+        "play_share": 5.291319489727004e-06,
+        "ratio": 0.028245063436162746
+      },
+      "bs": {
+        "catalog_count": 1,
+        "catalog_share": 9.366804046459348e-05,
+        "play_count": 2000,
+        "play_share": 5.751434227964135e-05,
+        "ratio": 0.614023118177451
+      },
+      "mo": {
+        "catalog_count": 1,
+        "catalog_share": 9.366804046459348e-05,
+        "play_count": 246,
+        "play_share": 7.074264100395885e-06,
+        "ratio": 0.07552484353582647
+      },
+      "ar": {
+        "catalog_count": 5,
+        "catalog_share": 0.0004683402023229674,
+        "play_count": 1177,
+        "play_share": 3.3847190431568934e-05,
+        "ratio": 0.07227052100948599
+      },
+      "no": {
+        "catalog_count": 20,
+        "catalog_share": 0.0018733608092918695,
+        "play_count": 4692,
+        "play_share": 0.0001349286469880386,
+        "ratio": 0.072024911762215
+      },
+      "sh": {
+        "catalog_count": 2,
+        "catalog_share": 0.00018733608092918696,
+        "play_count": 576,
+        "play_share": 1.6564130576536707e-05,
+        "ratio": 0.08841932901755295
+      },
+      "sv": {
+        "catalog_count": 47,
+        "catalog_share": 0.004402397901835894,
+        "play_count": 39403,
+        "play_share": 0.001133118814422354,
+        "ratio": 0.25738673325049044
+      },
+      "hu": {
+        "catalog_count": 4,
+        "catalog_share": 0.0003746721618583739,
+        "play_count": 677,
+        "play_share": 1.9468604861658597e-05,
+        "ratio": 0.051961706375766796
+      },
+      "is": {
+        "catalog_count": 2,
+        "catalog_share": 0.00018733608092918696,
+        "play_count": 1079,
+        "play_share": 3.1028987659866504e-05,
+        "ratio": 0.1656327361283674
+      },
+      "ro": {
+        "catalog_count": 6,
+        "catalog_share": 0.0005620082427875609,
+        "play_count": 1230,
+        "play_share": 3.5371320501979425e-05,
+        "ratio": 0.06293736961318872
+      },
+      "vi": {
+        "catalog_count": 4,
+        "catalog_share": 0.0003746721618583739,
+        "play_count": 999,
+        "play_share": 2.872841396868085e-05,
+        "ratio": 0.0766761368824092
+      },
+      "fr": {
+        "catalog_count": 447,
+        "catalog_share": 0.041869614087673285,
+        "play_count": 458830,
+        "play_share": 0.01319465283408392,
+        "ratio": 0.315136719589888
+      },
+      "cn": {
+        "catalog_count": 66,
+        "catalog_share": 0.006182090670663169,
+        "play_count": 78038,
+        "play_share": 0.002244152121409326,
+        "ratio": 0.3630086067903934
+      },
+      "nl": {
+        "catalog_count": 18,
+        "catalog_share": 0.0016860247283626826,
+        "play_count": 7109,
+        "play_share": 0.00020443472963298516,
+        "ratio": 0.12125250964231943
+      },
+      "it": {
+        "catalog_count": 136,
+        "catalog_share": 0.012738853503184714,
+        "play_count": 182979,
+        "play_share": 0.0052619584179932465,
+        "ratio": 0.41306373581246986
+      },
+      "ja": {
+        "catalog_count": 221,
+        "catalog_share": 0.020700636942675158,
+        "play_count": 262726,
+        "play_share": 0.007555256544880526,
+        "ratio": 0.364977008475767
+      },
+      "th": {
+        "catalog_count": 12,
+        "catalog_share": 0.0011240164855751218,
+        "play_count": 2888,
+        "play_share": 8.30507102518021e-05,
+        "ratio": 0.07388744855401994
+      },
+      "ko": {
+        "catalog_count": 38,
+        "catalog_share": 0.0035593855376545524,
+        "play_count": 23172,
+        "play_share": 0.0006663611696519246,
+        "ratio": 0.18721241703168282
+      },
+      "ru": {
+        "catalog_count": 40,
+        "catalog_share": 0.003746721618583739,
+        "play_count": 20156,
+        "play_share": 0.0005796295414942255,
+        "ratio": 0.15470312462480879
+      },
+      "ka": {
+        "catalog_count": 1,
+        "catalog_share": 9.366804046459348e-05,
+        "play_count": 102,
+        "play_share": 2.9332314562617085e-06,
+        "ratio": 0.03131517902705
+      },
+      "cs": {
+        "catalog_count": 15,
+        "catalog_share": 0.001405020606968902,
+        "play_count": 6792,
+        "play_share": 0.000195318706381662,
+        "ratio": 0.13901483395537492
+      },
+      "ku": {
+        "catalog_count": 2,
+        "catalog_share": 0.00018733608092918696,
+        "play_count": 300,
+        "play_share": 8.627151341946202e-06,
+        "ratio": 0.046051733863308825
+      },
+      "he": {
+        "catalog_count": 16,
+        "catalog_share": 0.0014986886474334957,
+        "play_count": 2749,
+        "play_share": 7.905346346336703e-05,
+        "ratio": 0.052748423495931646
+      },
+      "fi": {
+        "catalog_count": 20,
+        "catalog_share": 0.0018733608092918695,
+        "play_count": 3425,
+        "play_share": 9.84933111538858e-05,
+        "ratio": 0.05257572949394424
+      },
+      "tn": {
+        "catalog_count": 1,
+        "catalog_share": 9.366804046459348e-05,
+        "play_count": 754,
+        "play_share": 2.1682907039424787e-05,
+        "ratio": 0.23148671555289904
+      },
+      "tr": {
+        "catalog_count": 4,
+        "catalog_share": 0.0003746721618583739,
+        "play_count": 263,
+        "play_share": 7.563136009772837e-06,
+        "ratio": 0.020186010010083702
+      },
+      "zh": {
+        "catalog_count": 60,
+        "catalog_share": 0.005620082427875608,
+        "play_count": 119549,
+        "play_share": 0.0034378910525944217,
+        "ratio": 0.6117154146249675
+      },
+      "bn": {
+        "catalog_count": 4,
+        "catalog_share": 0.0003746721618583739,
+        "play_count": 1875,
+        "play_share": 5.391969588716376e-05,
+        "ratio": 0.14391166832284008
+      },
+      "mk": {
+        "catalog_count": 1,
+        "catalog_share": 9.366804046459348e-05,
+        "play_count": 1248,
+        "play_share": 3.58889495824962e-05,
+        "ratio": 0.3831504257427294
+      },
+      "iu": {
+        "catalog_count": 1,
+        "catalog_share": 9.366804046459348e-05,
+        "play_count": 696,
+        "play_share": 2.001499111331519e-05,
+        "ratio": 0.21368004512575298
+      },
+      "fa": {
+        "catalog_count": 16,
+        "catalog_share": 0.0014986886474334957,
+        "play_count": 4341,
+        "play_share": 0.00012483487991796154,
+        "ratio": 0.08329607362525984
+      },
+      "ta": {
+        "catalog_count": 3,
+        "catalog_share": 0.00028100412139378045,
+        "play_count": 139,
+        "play_share": 3.997246788435074e-06,
+        "ratio": 0.014224868904444282
+      },
+      "el": {
+        "catalog_count": 7,
+        "catalog_share": 0.0006556762832521544,
+        "play_count": 1669,
+        "play_share": 4.79957186323607e-05,
+        "ratio": 0.07320032744558326
+      },
+      "sr": {
+        "catalog_count": 3,
+        "catalog_share": 0.00028100412139378045,
+        "play_count": 4660,
+        "play_share": 0.00013400841751156432,
+        "ratio": 0.4768912884511536
+      },
+      "da": {
+        "catalog_count": 38,
+        "catalog_share": 0.0035593855376545524,
+        "play_count": 23696,
+        "play_share": 0.0006814299273291906,
+        "ratio": 0.19144594484648525
+      },
+      "hi": {
+        "catalog_count": 57,
+        "catalog_share": 0.005339078306481828,
+        "play_count": 15275,
+        "play_share": 0.00043926578916076076,
+        "ratio": 0.08227371166807512
+      },
+      "ps": {
+        "catalog_count": 1,
+        "catalog_share": 9.366804046459348e-05,
+        "play_count": 255,
+        "play_share": 7.333078640654272e-06,
+        "ratio": 0.078287947567625
+      },
+      "es": {
+        "catalog_count": 122,
+        "catalog_share": 0.011427500936680405,
+        "play_count": 124989,
+        "play_share": 0.003594330063595046,
+        "ratio": 0.3145333422863993
+      },
+      "mn": {
+        "catalog_count": 2,
+        "catalog_share": 0.00018733608092918696,
+        "play_count": 340,
+        "play_share": 9.777438187539028e-06,
+        "ratio": 0.05219196504508333
+      },
+      "bo": {
+        "catalog_count": 2,
+        "catalog_share": 0.00018733608092918696,
+        "play_count": 470,
+        "play_share": 1.3515870435715717e-05,
+        "ratio": 0.07214771638585049
+      },
+      "de": {
+        "catalog_count": 115,
+        "catalog_share": 0.01077182465342825,
+        "play_count": 174138,
+        "play_share": 0.005007716267946092,
+        "ratio": 0.4648902511008042
+      },
+      "id": {
+        "catalog_count": 3,
+        "catalog_share": 0.00028100412139378045,
+        "play_count": 775,
+        "play_share": 2.2286807633361023e-05,
+        "ratio": 0.0793113194312541
+      }
+    },
+    "eligible_min_ratio": 0.05257572949394424,
+    "eligible_languages": [
+      [
+        "fi",
+        0.05257572949394424
+      ],
+      [
+        "no",
+        0.072024911762215
+      ],
+      [
+        "hi",
+        0.08227371166807512
+      ],
+      [
+        "ru",
+        0.15470312462480879
+      ],
+      [
+        "ko",
+        0.18721241703168282
+      ],
+      [
+        "da",
+        0.19144594484648525
+      ],
+      [
+        "sv",
+        0.25738673325049044
+      ],
+      [
+        "es",
+        0.3145333422863993
+      ],
+      [
+        "fr",
+        0.315136719589888
+      ],
+      [
+        "cn",
+        0.3630086067903934
+      ]
+    ],
+    "attr": "original_language",
+    "min_catalog": 20,
+    "total_catalog": 10676,
+    "total_plays": 34773935
+  },
+  "exposure_parity_budget_quartile": {
+    "per_value": {
+      "q1_lowest": {
+        "catalog_count": 1669,
+        "catalog_share": 0.15633195953540652,
+        "play_count": 3491409,
+        "play_share": 0.10040304613211015,
+        "ratio": 0.6422426126461402
+      },
+      "zero": {
+        "catalog_count": 4010,
+        "catalog_share": 0.3756088422630199,
+        "play_count": 1866047,
+        "play_share": 0.05366223293394895,
+        "ratio": 0.14286733137227903
+      },
+      "q2": {
+        "catalog_count": 1741,
+        "catalog_share": 0.16307605844885725,
+        "play_count": 5570296,
+        "play_share": 0.16018595537145855,
+        "ratio": 0.9822775758447395
+      },
+      "q3": {
+        "catalog_count": 1627,
+        "catalog_share": 0.1523979018358936,
+        "play_count": 9079396,
+        "play_share": 0.2610977446182033,
+        "ratio": 1.7132633814037725
+      },
+      "q4_highest": {
+        "catalog_count": 1629,
+        "catalog_share": 0.15258523791682277,
+        "play_count": 14766787,
+        "play_share": 0.4246510209442791,
+        "ratio": 2.7830413134445204
+      }
+    },
+    "eligible_min_ratio": 0.14286733137227903,
+    "eligible_languages": [
+      [
+        "zero",
+        0.14286733137227903
+      ],
+      [
+        "q1_lowest",
+        0.6422426126461402
+      ],
+      [
+        "q2",
+        0.9822775758447395
+      ],
+      [
+        "q3",
+        1.7132633814037725
+      ],
+      [
+        "q4_highest",
+        2.7830413134445204
+      ]
+    ],
+    "attr": "_budget_q",
+    "min_catalog": 20,
+    "total_catalog": 10676,
+    "total_plays": 34773935
+  },
+  "wtr_by_group": null,
+  "requirements_summary": {
+    "R1_gender_gap_pct": 1.7039937514134698,
+    "R1_gender_ratio": 0.9831040157438476,
+    "R1_gender_welch_p": 7.2832628816854594e-09,
+    "R1_age_min_max_ratio": 0.9566757014116777,
+    "R1_met": true,
+    "R2_min_language_ratio": 0.05257572949394424,
+    "R2_met": false
+  }
+}
