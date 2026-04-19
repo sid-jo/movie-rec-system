@@ -8,8 +8,6 @@ This report matches the implementation on `main`. All code, notebooks, and artif
 
 ## Fairness Risks
 
-We followed a five-step fairness analysis process. Intermediate artifacts are committed in [docs/fairness/](docs/fairness/) (harm table, bias-source notes, conflict matrix); the findings below summarise them.
-
 ### (a) Understanding potential fairness harms
 
 We classified harms against the Barocas/Hardt/Narayanan taxonomy and mapped each to a concrete part of our deployed pipeline.
