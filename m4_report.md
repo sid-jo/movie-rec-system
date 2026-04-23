@@ -205,12 +205,22 @@ Second, **inference-time harvesting and inversion-style threats.** Because `/rec
 
 **Additional negative result (distribution of outputs).** Because we do not log per-response movie IDs to Prometheus (only aggregate `recommendations_served_total` counts in [src/app.py](src/app.py)), telemetry **cannot** currently answer whether an adversary is **steering** outputs toward a fixed set of IDs—another **observability gap** relative to inversion-style hypotheses. Extending instrumentation with a **sampled, privacy-preserving** histogram of genre buckets (exporter-side, not per-user) would be required for that sub-question.
 
-**Artifacts.**
+**Artifacts (repo-relative).**
 
 - [notebooks/security_telemetry_analysis.ipynb](notebooks/security_telemetry_analysis.ipynb) — reproducible PromQL driver (`PROMETHEUS_URL` configurable).
 - [src/app.py](src/app.py) — metric definitions and `/metrics` route.
 - [monitoring/alerts.yml](monitoring/alerts.yml) — alert expressions used as benchmarks.
 - [monitoring/metrics_exporter.py](monitoring/metrics_exporter.py) — Kafka-side online rate for comparison.
+- [docs/SECURITY_REPORT.md](docs/SECURITY_REPORT.md) — standalone security + safety write-up (overlaps this milestone section).
+
+**GitHub (`main`) — same artifacts for submission/PDF:**
+
+- Telemetry notebook: [notebooks/security_telemetry_analysis.ipynb](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/notebooks/security_telemetry_analysis.ipynb)
+- Standalone report: [docs/SECURITY_REPORT.md](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/docs/SECURITY_REPORT.md)
+- Service metrics: [src/app.py](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/src/app.py)
+- Prometheus scrape config: [monitoring/prometheus.yml](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/monitoring/prometheus.yml)
+- Alert rules: [monitoring/alerts.yml](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/monitoring/alerts.yml)
+- Kafka / online metrics exporter: [monitoring/metrics_exporter.py](https://github.com/cmu-seai/group-project-s26-model-impossible-1/blob/main/monitoring/metrics_exporter.py)
 
 **Evaluation checklist (rubric self-check).**
 
