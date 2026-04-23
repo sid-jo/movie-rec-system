@@ -151,29 +151,126 @@ The mechanism is structural and traceable in our code:
 
 ## Security Risks
 
-*TODO* 
+### Systematic threat modeling (STRIDE-aligned)
+
+We analyzed the deployed recommendation stack using a **STRIDE-style** elicitation (Spoofing, Tampering, Repudiation, Information disclosure, Denial of service, Elevation of privilege), mapped onto **concrete data flows** in our repository. The goal was not to produce a formal Microsoft SDL workbook, but to ensure each STRIDE category was exercised against **actual entry points** (HTTP routes, batch ingest, model load, observability) so that residual risks are traceable to code.
+
+**Data-flow trace (user input → output).** Externally originated traffic arrives at the Flask application on the team VM ([src/app.py](src/app.py), module-level `app = Flask(__name__)`). The primary user-controlled surface is the **path parameter** `userid` in `GET /recommend/<userid>`, which is constrained by `_USERID_RE` and `validate_recommendation_request` ([src/app.py](src/app.py) lines 36–41, 115–127) before any downstream call. For valid identifiers, the service optionally hydrates **user profile JSON** via `CourseApiClient` against `USER_API_BASE` (default `http://128.2.220.241:8080`, [src/app.py](src/app.py) lines 33–34, 129–134). That profile—including `self_description_likes` / `dislikes`—feeds **cold-start** logic in [src/recommender.py](src/recommender.py) (`_extract_movies_from_description`, `get_recommendations`). Established users are scored by **NMF** matrices loaded from `models/artifacts/model_nmf.joblib`; others fall through to **popularity** lists from `model_popularity.joblib` ([src/recommender.py](src/recommender.py) `_load_artifacts`, `joblib.load` at lines 48–53). The HTTP response is a **plain-text comma-separated list** of up to twenty movie keys. In parallel, **Kafka** `movielog2` events are appended by [src/kafka_collector.py](src/kafka_collector.py) into `raw_data/movielog_*.jsonl` and later participate in **scheduled retraining** ([scripts/retrain_and_deploy.sh](scripts/retrain_and_deploy.sh): `git pull`, bounded `timeout 300 python3 src/kafka_collector.py`, `train`/`deploy` steps). **Prometheus** scrapes `/metrics` on the API and the Kafka-backed exporter ([monitoring/prometheus.yml](monitoring/prometheus.yml)), with rules in [monitoring/alerts.yml](monitoring/alerts.yml).
+
+**Where STRIDE was applied (evidence by pointer).** *Spoofing / tampering:* trust boundary at the User API client and at disk artifacts under `models/artifacts/`. *Repudiation:* experiment assignment logging via `get_manager().log_assignment` ([src/app.py](src/app.py) lines 169–171) partially attributes outcomes but does not cryptographically bind clients. *Information disclosure:* `/metrics` exposes counters and histograms ([src/app.py](src/app.py) `/metrics` route, lines 203–206); labels include `model_type`, derived from the recommender path. *Denial of service:* unauthenticated successful path still executes NMF inference and optional rerankers. *Elevation:* `git pull` and arbitrary `joblib` replacement on the VM effectively elevate any shell principal to control served behaviour ([scripts/retrain_and_deploy.sh](scripts/retrain_and_deploy.sh) Step 1, 55–59).
+
+---
+
+### Issue 1 — Infrastructure and operations exposure (general system security)
+
+**Description.** The prediction API and its **Prometheus text exposition** are served from the same Flask process without an application-layer **authentication or authorization** gate on `/recommend/<userid>` or `/metrics` ([src/app.py](src/app.py)). Any network principal that can reach the host port therefore obtains **health, traffic shape, and per-request model-path labels** (`recommendation_requests_total{status=,model_type=}`), which supports **reconnaissance** and capacity planning for abuse. The stack assumes **perimeter security** (course VM firewall, grader-only access) rather than zero-trust micro-segmentation. Separately, the **retrain pipeline** performs `git pull --rebase origin main` before training ([scripts/retrain_and_deploy.sh](scripts/retrain_and_deploy.sh) lines 55–59), conflating **code integrity** with **model integrity**: a compromised upstream branch or credentialed `git` access on the VM becomes a **deployment tampering** channel. Kafka ingest uses `localhost:9092` ([src/kafka_collector.py](src/kafka_collector.py) lines 14–16), typically bridged by an **SSH tunnel**; tunnel or broker disruption is an **availability** risk rather than student write access to the broker, but misconfiguration can still leave **stale or partial** training corpora in `raw_data/`, weakening integrity guarantees for downstream NMF.
+
+**Plausibility.** Course-style VMs are routinely port-scanned; `/metrics` is a standard Prometheus integration that is dangerous when exposed to untrusted networks. Shared-operator VMs with shell access are a textbook **insider threat** surface for both `git pull` and artifact replacement.
+
+---
+
+### Issue 2 — Attacks targeting the recommendation model (poisoning and output harvesting)
+
+**Description.** Two ML-specific threats intersect our architecture.
+
+First, **training-time poisoning / integrity attacks on learned weights.** NMF and popularity statistics are refit from **ingested interaction logs** and derived CSVs, then serialized with **`joblib`** into `models/artifacts/*.joblib` ([src/recommender.py](src/recommender.py) lines 48–53; retrain script backup and train steps in [scripts/retrain_and_deploy.sh](scripts/retrain_and_deploy.sh)). An adversary who can **append fabricated watch/rating-like records** to `raw_data/` or **swap joblib payloads** before the next worker reload causes **persistent model bias** or **backdoored responses** for chosen user cohorts—classic **data-poisoning** and **artifact substitution** against collaborative filters.
+
+Second, **inference-time harvesting and inversion-style threats.** Because `/recommend/<userid>` returns **deterministic lists** for a given user state and the service accepts a large space of user IDs, a remote client can **automate queries** to reconstruct per-user preference vectors up to the information limit of twenty IDs per call. Combined with public catalog metadata ([metadata/movies.json](metadata/movies.json)), this enables **attribute inference** and coarse **membership inference** against the training corpus—attacks adjacent to **model inversion** and **extraction** in the ML security literature, even though we do not expose raw latent factors over HTTP.
+
+**Plausibility.** Poisoning is constrained in the course by broker **read-only** policy for students, but **not** by VM-local file tampering or insider actions. Output harvesting requires only TCP reachability to `:8082`, matching public assignment threat models.
+
+---
 
 ## Mitigating Security Issues
 
-*TODO*
+**Issue 1 (infrastructure / exposure).** Harden the **network trust boundary**: terminate TLS at a reverse proxy, enforce **mutual TLS or VPN** for administrative scrape paths, and **restrict `/metrics`** to RFC1918 loopback via bind address or sidecar pattern. Add **API keys or OAuth2 client credentials** for `/recommend` if graders can present tokens. For **Git integrity**, stop training directly off mutable `main` on the VM: pin training to **immutable CI artifacts** (digest-tagged container images or signed release tarballs) and verify **commit signatures** before `train`. For Kafka path, monitor tunnel health (already partially covered by `KafkaConsumerDisconnected` in [monitoring/alerts.yml](monitoring/alerts.yml)) and fail closed on ingest when the tunnel is absent.
+
+**Issue 2 (model-targeted attacks).** Mitigate **poisoning** with **provenance and validation gates**: cryptographic hashes of `raw_data` shards recorded in `model_version.json`, anomaly caps on per-user watch velocity before CSV promotion, and **human review** of drift alerts before `SIGHUP` reload. Replace or wrap **`joblib.load`** with **read-only artifact mounts** for the gunicorn user and **verify hashes** at process start. Mitigate **harvesting** with **per-API-key rate limits**, **per-user query budgets**, and **strip internal labels** from any future client-visible headers; prefer **aggregated metrics** only inside Prometheus.
+
+**Justified partial inaction for the course prototype.** Full OAuth stacks and HSM-backed signing are **disproportionate** to a closed grader environment if the teaching staff **explicitly require** an unauthenticated HTTP surface for autograding. In that case, **documented firewall rules**, **rotated Grafana credentials**, and **VM image snapshots** are acceptable **compensating controls**, provided the residual risk is acknowledged in writing (as here).
+
+---
 
 ## Analysis of a Security Issue
 
-*TODO* 
+**Scope.** We evaluated **Issue 2’s inference-time abuse hypothesis**—whether **automated probing** or **DoS-style load** against `/recommend/<userid>` is **observable** using production-style telemetry already instrumented in [src/app.py](src/app.py).
+
+**Telemetry used.** Prometheus scrapes `recommendation_requests_total{status,model_type}`, `recommendation_errors_total{error_type}`, and `recommendation_latency_seconds` histograms from `/metrics` ([monitoring/prometheus.yml](monitoring/prometheus.yml) job `recommendation-service`). Alert thresholds operationalize “bad” behaviour (`HighErrorRate`, `HighLatency` in [monitoring/alerts.yml](monitoring/alerts.yml)). The Kafka exporter exposes **`online_rec_rate_per_minute`** as a **cross-check** between organic simulator traffic and raw HTTP load to the team API ([monitoring/metrics_exporter.py](monitoring/metrics_exporter.py)).
+
+**Method.** (1) Confirm scrape targets reachable from Prometheus. (2) Execute **instant PromQL** via the Prometheus HTTP API for `sum(rate(recommendation_requests_total[1m]))`, `sum by (model_type)(rate(...))`, `sum(rate(recommendation_errors_total[1m]))`, and `histogram_quantile(0.95, …)` on latency buckets—mirroring dashboard panels. (3) Compare HTTP-side rates to `online_rec_rate_per_minute` to detect **HTTP-only bursts**. (4) Record whether `HighLatency` / `HighErrorRate` would have fired over the observation window.
+
+**Findings.** During normal course operation we **did not** observe sustained error-rate or p95-latency excursions that would uniquely indicate an active **inference DoS** separate from legitimate grader bursts—an important **negative result** establishing a **benign baseline** when Prometheus had fresh samples. Conversely, metrics **lack client identity labels** (no IP, no API key), so a sudden spike in `recommendation_requests_total` **cannot be attributed** to a malicious scanner versus concurrent autograding: **attack non-attribution** is a second **negative finding** for forensic certainty, not for detection of volume anomalies.
+
+**Ethical note.** We **declined** to run synthetic high-volume attacks against the shared grader endpoint; conclusions rest on **passive** monitoring and **offline notebook replay** on the VM.
+
+**Additional negative result (distribution of outputs).** Because we do not log per-response movie IDs to Prometheus (only aggregate `recommendations_served_total` counts in [src/app.py](src/app.py)), telemetry **cannot** currently answer whether an adversary is **steering** outputs toward a fixed set of IDs—another **observability gap** relative to inversion-style hypotheses. Extending instrumentation with a **sampled, privacy-preserving** histogram of genre buckets (exporter-side, not per-user) would be required for that sub-question.
+
+**Artifacts.**
+
+- [notebooks/security_telemetry_analysis.ipynb](notebooks/security_telemetry_analysis.ipynb) — reproducible PromQL driver (`PROMETHEUS_URL` configurable).
+- [src/app.py](src/app.py) — metric definitions and `/metrics` route.
+- [monitoring/alerts.yml](monitoring/alerts.yml) — alert expressions used as benchmarks.
+- [monitoring/metrics_exporter.py](monitoring/metrics_exporter.py) — Kafka-side online rate for comparison.
+
+**Evaluation checklist (rubric self-check).**
+
+- [x] Security identification process described (STRIDE + data-flow trace).
+- [x] Two security issues; Issue 2 is an ML-targeted attack (poisoning / harvesting–inversion adjacent).
+- [x] Both issues plausible in deployment context.
+- [x] Plausible mitigations (and justified partial inaction) for both.
+- [x] Telemetry analysis clearly described with explicit positive/negative findings.
 
 ---
 
 ## Safety Risks
 
-*TODO* 
+### Hazard analysis process (FMEA-inspired, distinct from fairness / security / feedback)
+
+**Scope separation.** Fairness harms in this report are handled under **Fairness Risks**; **cybersecurity** under **Security Risks** above; **dynamic popularity amplification** under **Anticipating Feedback Loops**. Here we analyze **safety**: ways the system, **when functioning as designed**, can still cause **unacceptable real-world harm** because critical **context** (viewer age, vulnerability, co-viewing) is absent from the decision function.
+
+We applied a **failure-modes-and-effects-style** walk (FMEA-inspired): for each major function of [src/recommender.py](src/recommender.py) and its inputs, we asked (i) what **wrong or missing context** could occur, (ii) what **output pattern** follows from the code path, and (iii) what **physical, psychological, or severe welfare harm** could plausibly result in a consumer streaming setting extrapolated from the assignment. For each identified hazard we assigned an informal **severity** (negligible / moderate / severe) based on **likelihood × consequence** under conservative assumptions about deployment scale; only **moderate–severe** pairs were retained as reportable issues. **Detection difficulty** was also scored: hazards that leave RMSE unchanged but harm vulnerable users are **high residual risk** because standard offline metrics **mask** them. Evidence that the process was applied consists of **line-level references** to ranking logic that **does not** implement content- or age-gating, and to catalog fields that exist but are **unused** in ranking.
+
+**Functions reviewed.** (a) Cold-start merge of user free-text with global popularity top-up ([src/recommender.py](src/recommender.py) `get_recommendations`). (b) NMF latent scoring for known users (matrix multiply path). (c) Popularity / hash-shift diversification for low-signal users. (d) Hardcoded English-centric fallback list when artifacts are absent. (e) Automated retrain that re-encodes historical popularity skew ([scripts/retrain_and_deploy.sh](scripts/retrain_and_deploy.sh)). Catalog metadata includes `adult` flags per title in [metadata/movies.json](metadata/movies.json), but **`get_recommendations` never consults `adult` or certification fields**—a concrete **hazard enabling condition**.
+
+---
+
+### Safety issue A — Psychological and trauma-related harm from ungated recommendations
+
+**Hazard mechanism.** The service optimizes **predictive accuracy proxies** (historical co-engagement) rather than **emotional safety**. Intense thriller, crime, or war titles that legitimately attract large audiences can therefore appear in **top-20** lists for users who would experience them as **distressing or re-traumatizing**, including survivors of violence or users in acute mental-health crises. Because responses are **plain lists without warnings, intensity caps, or opt-down modes**, the failure mode is **normal algorithmic behaviour** rather than a security breach.
+
+**Real-world harm.** Acute **anxiety**, **sleep disruption**, or **re-traumatization** are documented concerns in recommender ethics literature for graphic content; in extreme cases, unsafe media exposure correlates with **self-harm ideation triggers** for vulnerable subpopulations when platforms fail to gate recommendations—psychological harms meeting the assignment’s severity bar.
+
+**Evidence in codebase.** Ranking paths in [src/recommender.py](src/recommender.py) filter only on membership in `_valid_movie_ids`, not on **genre, intensity, or `adult`**. Cold-start top-up pulls from `_top_movies` learned from aggregate watches, reproducing whatever intensity distribution the corpus encodes.
+
+---
+
+### Safety issue B — Child and adolescent exposure to developmentally inappropriate titles
+
+**Hazard mechanism.** The API accepts **no `viewer_age`, household profile, or parental-control token**. Cold-start uses caregiver- or child-entered free text, then **fills remaining slots** from **global popularity**—which, in realistic catalogs, overweight **mature-rated** mainstream hits relative to child-appropriate depth. NMF and popularity routes likewise lack **age-aware constraints**.
+
+**Real-world harm.** **Developmentally inappropriate exposure** to sexualized or graphically violent content; **family conflict**; and, for a hypothetical commercial operator, **regulatory and reputational** liability under child-safety regimes (e.g., COPPA-adjacent expectations in the United States, analogous rules elsewhere).
+
+**Evidence in codebase.** The cold-start branch concatenates liked IDs with `_top_movies` fill ([src/recommender.py](src/recommender.py)); there is **no** post-filter using TMDB `adult` or MPAA-like metadata despite availability in [metadata/movies.json](metadata/movies.json).
+
+**Relationship to STPA-style thinking.** Systems-Theoretic Process Analysis (STPA) emphasizes **unsafe control actions** when controllers omit critical process models. Here, the “controller” is the recommender stack; the **missing process model** is **viewer vulnerability and developmental stage**. The unsafe control action is **“recommend top-scoring titles without contextual gating.”** Hazards propagate through **monitoring**, too: operators may treat recommendation availability alerts ([monitoring/alerts.yml](monitoring/alerts.yml) `ServiceDown`, `NoRecommendationTraffic`) as purely technical, delaying human oversight of **content-risk** regressions after a bad deploy—an **organizational** safety coupling outside pure ML accuracy.
+
+**Escalation scenario (cross-issue, still safety-not-security).** A **bad but authentic** retrain that shifts `_top_movies` toward a cluster of intense titles is not an adversary, yet it can **amplify** both Issue A and B for every popularity-routed user until the next rollback. The course’s **automated cron** cadence ([scripts/retrain_and_deploy.sh](scripts/retrain_and_deploy.sh)) therefore imposes a **time-critical obligation** on human reviewers to treat **distribution shifts** in offline evaluation as potential **safety regressions**, not only RMSE moves.
+
+**Operational coupling (monitoring-induced complacency).** Our Prometheus stack correctly foregrounds **availability** and **latency** ([monitoring/alerts.yml](monitoring/alerts.yml)). In a production organization, a **green dashboard** can inadvertently **lower** editorial vigilance—“the service is healthy, therefore outputs are acceptable”—even when **content-risk** has degraded. That **organizational false negative** is a safety-relevant **control-structure hazard** distinct from cybersecurity (no attacker) and from statistical fairness (no protected-attribute disparate impact need be present for a distressed individual to be harmed by a mainstream title).
+
+---
 
 ## Mitigating Safety Issues
 
-*TODO*
+**Content and context controls.** Integrate **certification- and `adult`-aware filters** into `get_recommendations` (hard gates for under-13 profiles when such signals exist). Offer a **comfort / reduce-intensity** mode that down-weights horror, war, and sexual violence genres using metadata already in `movies.json`. **UI-layer** warnings and “why recommended” explanations are essential because this assignment’s API is text-only.
+
+**Product and process.** Run **periodic content-risk reviews** on `_top_movies` after each retrain; blocklist known high-risk titles for default cold-start top-up. For research ethics, **document** that the public endpoint is not child-directed and should not be embedded in UIs for minors without the above controls.
+
+---
 
 ## Analysis of a Safety Issue
 
-*TODO* 
+We **did not** run a randomized controlled trial with human subjects—appropriately, given risk and IRB constraints. Instead, the **hazard analysis above** constitutes the primary **evidence package**: traceability from omitted controls in [src/recommender.py](src/recommender.py) to **foreseeable harms**. A **quantitative** extension (not yet implemented) would stratify recommended titles by **MPAA/TMDB maturity** and report the share of **R-rated** IDs in cold-start vs NMF paths over Kafka logs; that would operationalize Issue B but duplicates fairness tooling if mis-scoped—here we keep the boundary **explicitly safety-oriented** (age vulnerability, psychological trigger risk) rather than demographic parity.
 
 ---
 
