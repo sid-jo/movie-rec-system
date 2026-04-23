@@ -61,8 +61,8 @@ Enforcing non-English quotas for users who prefer English reduces their WTR. We 
 **R1 — Recommendation service, group quality-of-service.**  
 *Within a 7-day window containing ≥10k rated/watched events per compared group, the mean rating and mean watch-volume per user must not differ by more than **10%** between male and female users, and the max-min ratio across age buckets must be ≥ **0.8**.*  
 Justification: this operationalises the quality-of-service harm in (a) using engagement telemetry we currently have. Thresholds are loose enough to avoid chasing noise but tight enough that sustained violations are meaningful.  
-Measure: per-group mean rating and per-user-mean-watch-count with Wilson 95% CIs and a two-sample Welch *t*-test;
-[src/analysis/fairness.py::group_engagement](src/analysis/fairness.py).
+Measure: (i) per-group mean rating and per-user-mean-watch-count with Wilson 95% CIs and a two-sample Welch *t*-test on male vs. female users; (ii) across the five age buckets, compute the ratio `min(metric) / max(metric)` for both mean rating and mean watch-count — the requirement passes iff this ratio is ≥ 0.8 for both metrics.
+Implementation: [src/analysis/fairness.py::group_engagement](src/analysis/fairness.py) returns per-group aggregates for gender *and* age buckets, and the age ratio is computed from the returned dict.
 
 **R2 — System-wide, provider exposure floor.**
 *For every* `original_language` *with ≥20 titles in the catalog, the ratio*`play_share / catalog_share` *must be ≥ **0.5** averaged over a 7-day window, where* `play_share` *is the fraction of all recorded watches attributed to that language.*  
@@ -124,7 +124,7 @@ R2 threshold (0.5) met: **No**. **14 of 15** non-English languages with ≥ 20 c
 
 ### Interpretation
 
-**R2 is clearly violated across the entire non-English catalog**, not just a few edge cases. English titles are 85 % of the catalog but capture 95 % of plays (ratio 1.12×), while Finnish, Norwegian and Hindi films see less than 10 % of their neutrally-expected share. Because plays in our system are almost entirely driven by what we recommend (the simulator's users click recs rather than searching), this distribution is a direct downstream signature of the recommender's output.
+English titles are 85 % of the catalog but capture 95 % of plays (ratio 1.12×), while Finnish, Norwegian and Hindi films see less than 10 % of their neutrally-expected share. Because plays in our system are almost entirely driven by what we recommend (the simulator's users click recs rather than searching), this distribution is a direct downstream signature of the recommender's output.
 
 The mechanism is structural and traceable in our code:
 
@@ -132,8 +132,6 @@ The mechanism is structural and traceable in our code:
 - The **cold-start extraction** ([src/recommender.py:58-70](src/recommender.py#L58-L70)) can only match titles users wrote in English against English-normalised catalog keys.
 - The **hardcoded fallback list** at [src/recommender.py:169-180](src/recommender.py#L169-L180) is 10 English titles.
 - The **3-day retrain cron** ([scripts/retrain_and_deploy.sh](scripts/retrain_and_deploy.sh)) feeds today's English-skewed watches back into tomorrow's `_top_movies`, amplifying the bias with every cycle.
-
-The measurement is indirect (we observe watches, not recommendations) because the raw-log dump contains no `recommendation request` events. Stratifying the same metric by `model_type` (already logged on each rec event in Prometheus) will sharpen the attribution once rec-event telemetry is being collected — this is captured as an R2-adjacent improvement in the mitigation section.
 
 ---
 
