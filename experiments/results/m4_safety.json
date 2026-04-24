@@ -1,0 +1,54 @@
+{
+  "generated_at": "2026-04-23T22:15:35.723038+00:00",
+  "analysis": "minor_adult_exposure",
+  "inputs": {
+    "rec_log_dir": "experiments/logs",
+    "watch_log_dir": null,
+    "users": "metadata/users.json",
+    "movies": "metadata/movies.json",
+    "watch_log_used": false
+  },
+  "telemetry": {
+    "recommendation_event_count": 1002,
+    "under_18_event_count": 8
+  },
+  "results": {
+    "minor_user_count": 4,
+    "recommendation_events_analyzed": 8,
+    "recommended_titles_analyzed": 160,
+    "events_with_adult_titles": 0,
+    "adult_titles_shown": 0,
+    "minor_adult_recommendation_rate": 0.0,
+    "minor_adult_title_share": 0.0,
+    "minor_adult_watch_rate": null,
+    "watch_followthrough_observation_count": 0,
+    "variant_breakdown": {
+      "control": {
+        "recommendation_events": 4,
+        "events_with_adult_titles": 0,
+        "recommended_titles": 80,
+        "adult_titles": 0,
+        "adult_recommendation_rate": 0.0,
+        "adult_title_share": 0.0
+      },
+      "no_cold_start": {
+        "recommendation_events": 2,
+        "events_with_adult_titles": 0,
+        "recommended_titles": 40,
+        "adult_titles": 0,
+        "adult_recommendation_rate": 0.0,
+        "adult_title_share": 0.0
+      },
+      "cost_optimised": {
+        "recommendation_events": 2,
+        "events_with_adult_titles": 0,
+        "recommended_titles": 40,
+        "adult_titles": 0,
+        "adult_recommendation_rate": 0.0,
+        "adult_title_share": 0.0
+      }
+    },
+    "conclusion": "no_observed_harm_in_sample",
+    "example_exposures": []
+  }
+}
