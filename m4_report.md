@@ -137,15 +137,54 @@ The mechanism is structural and traceable in our code:
 
 ## Anticipating Feedback Loops
 
-*TODO — fill during the feedback-loop track.*
+We used a simple causal-loop process on the deployed path:
+
+1. Identify recommender outputs that can change future data collection.
+2. Trace where those data are reused in training / serving.
+3. Mark reinforcing loops where "more exposure -> more engagement -> more model weight."
+
+Two plausible loops in our system:
+
+- **Component-level loop (popularity fallback reinforcement).**  
+  In low-signal cases, serving can return popularity-heavy candidates ([src/recommender.py](src/recommender.py), popularity/fallback paths). Those titles then accumulate more watches in telemetry, and retraining every 3 days ([scripts/retrain_and_deploy.sh](scripts/retrain_and_deploy.sh)) reuses that data, making them likely to be recommended again.
+- **System-level loop (catalog concentration / discoverability).**  
+  If mainstream titles occupy a large share of recommendation slots, long-tail or non-English titles receive fewer plays and ratings, reducing their future learnable signal and business viability. This shifts both model behavior and platform economics over time toward the same head catalog.
 
 ## Mitigating a Negative Feedback Loop
 
-*TODO*
+We would mitigate with one model-adjacent and one process/ops control:
+
+- **Serving-time exploration floor.** Add a small exploration quota in the final top-20 (for example 2 slots) for under-exposed titles, similar to current post-ranking hooks in [src/recommender_variants.py](src/recommender_variants.py). This directly interrupts head-catalog lock-in.
+- **Retrain-time anti-amplification gate.** Before hot-reload, run a loop-health check and block deployment if recommendation concentration crosses thresholds (for example top-1% share too high over repeated windows). This can be integrated into [scripts/retrain_and_deploy.sh](scripts/retrain_and_deploy.sh), like the proposed fairness/safety gates.
 
 ## Analysis of a Feedback Loop
 
-*TODO* 
+We audited the **popularity reinforcement loop** with telemetry-derived concentration and coupling metrics.
+
+**Code + artifact.**  
+[scripts/feedback_loop_analysis.py](scripts/feedback_loop_analysis.py) writes [experiments/results/m4_feedback_loop.json](experiments/results/m4_feedback_loop.json).
+
+**Data used.**
+- Recommendation-event logs: `experiments/logs/*.jsonl` (both experiments), **4,000 events / 80,000 recommendation slots**.
+- Watch telemetry: `data/processed/watches.csv`, **309,828 watch rows**.
+
+**Operationalization.**
+1. Count recommendation frequency per movie from experiment logs.
+2. Compute concentration (`top_1pct_recommendation_share`, `top_10_recommendation_share`, HHI).
+3. Join with watch counts and compute coupling:
+   - Spearman correlation between recommendation frequency and watch events.
+   - Ratio of average watch events for top recommendation decile vs bottom decile.
+4. Flag a strong loop if all hold: top-1% share >= 0.15, Spearman >= 0.3, top/bottom watch ratio >= 2.0.
+
+**Results (current run).**
+- `top_1pct_recommendation_share = 0.2625` (89 movies get 26.25% of all slots)
+- `top_10_recommendation_share = 0.0433`
+- `spearman_rec_count_vs_watch_events = 0.1644`
+- `top_bottom_watch_ratio = 9.25`
+- Script conclusion: `negative_feedback_loop_signal_detected = false` under the chosen composite threshold.
+
+**Interpretation.**  
+We do observe **strong concentration** and a large top-vs-bottom watch gap (consistent with potential amplification), but the cross-movie rank correlation is moderate rather than strong in this window. So this is a **warning signal**, not definitive proof of a runaway loop yet. We therefore treat the loop as plausible and prioritize the mitigation controls above plus continuous monitoring over future retrain windows.
 
 ---
 

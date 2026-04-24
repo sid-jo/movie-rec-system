@@ -1,0 +1,36 @@
+{
+  "generated_at": "2026-04-24T03:43:49.801958+00:00",
+  "inputs": {
+    "rec_log_dir": "experiments/logs",
+    "watches_csv": "data/processed/watches.csv"
+  },
+  "telemetry": {
+    "recommendation_events": 4000,
+    "recommendation_slots": 80000,
+    "unique_recommended_movies": 8867,
+    "watch_rows": 309828
+  },
+  "concentration": {
+    "top_10_recommendation_share": 0.0433125,
+    "top_1pct_movie_count": 89,
+    "top_1pct_recommendation_share": 0.2625125,
+    "hhi_recommendation_share": 0.0010650340625
+  },
+  "feedback_correlation": {
+    "spearman_rec_count_vs_watch_events": 0.16441657564995862,
+    "spearman_rec_count_vs_watch_minutes": 0.1604803549926602,
+    "top_decile_movie_count": 886,
+    "avg_watch_events_top_decile": 173.90632054176072,
+    "avg_watch_events_bottom_decile": 18.795711060948083,
+    "top_bottom_watch_ratio": 9.252447006545367
+  },
+  "conclusion": {
+    "negative_feedback_loop_signal_detected": false,
+    "interpretation": "no strong loop signal under current thresholds",
+    "thresholds": {
+      "top_1pct_recommendation_share": 0.15,
+      "spearman_rec_count_vs_watch_events": 0.3,
+      "top_bottom_watch_ratio": 2.0
+    }
+  }
+}
