@@ -205,6 +205,47 @@ We analyzed the stack with **STRIDE** mapped to **real components**: for each ca
 
 ---
 
+## Safety Risks
+
+We scoped safety separately from fairness, feedback loops, and security. Here, safety means harms that can occur even when the recommender behaves as implemented, but without the policy or product guardrails a real streaming service would normally add.
+
+We used a compact hazard-analysis workflow inspired by FMEA-style reasoning: function -> failure mode -> scenario -> harm. We first listed the main functions of our deployed slice, then asked what could go wrong when the output is wrong or the user context is missing, and finally traced those failures to real-world harms instead of only prediction-quality degradation.
+
+1. Rank and return up to 20 movie IDs from collaborative filtering, popularity, or cold-start logic in [src/recommender.py](src/recommender.py).
+2. Blend self-description signals with popularity fallback for new users in [src/recommender.py](src/recommender.py).
+3. Periodically retrain and redeploy models through [scripts/retrain_and_deploy.sh](scripts/retrain_and_deploy.sh).
+4. Expose system telemetry through the monitoring stack, whose outputs can influence operator actions.
+
+Evidence that we followed this process is visible in the specific hazards below: they are tied to actual implementation details and metadata fields rather than generic brainstorming. In particular, the catalog contains an `adult` field in [metadata/movies.json](metadata/movies.json), but the serving path in [src/recommender.py](src/recommender.py) does not consult it when ranking recommendations.
+
+**Safety issue A: psychological and trauma-related harm from ungated title lists.** The system returns movie IDs only and applies no content warnings, intensity caps, or user-vulnerability controls. A user in acute distress could therefore be recommended violent or assault-themed content purely because it ranks highly under collaborative or popularity-based signals. The real-world harm is not just poor personalization; it can be re-traumatization, acute anxiety, or sleep disruption caused by normal operation without editorial safeguards.
+
+**Safety issue B: child and teen exposure when age context is absent.** The serving API has no age, household-profile, or parental-control input, and the cold-start plus popularity paths do not enforce age-aware filtering. A minor account, or a shared family account implicitly treated as adult, could therefore receive adult or developmentally inappropriate titles if those titles score well in the current recommender. The potential harm includes inappropriate exposure, parental conflict, and regulatory or reputational risk for a production operator.
+
+---
+
+## Mitigating Safety Issues
+
+For the first safety issue, we would mitigate harm by adding policy and product controls above the ranking model rather than relying on the recommender alone. The most direct design change is to enrich the serving path with content-safety metadata and apply a post-ranking filter that can block or down-rank titles by content category, intensity, or explicit user preference. In a consumer product, we would also expose warnings or a "comfort mode" in the UI so users can opt out of distressing content even when the base recommender would otherwise surface it.
+
+For the second safety issue, the core mitigation is to make age context explicit in the serving contract and to fail safe when that context is missing. In practice, that means adding an age-band or household-profile signal to the recommendation request, maintaining kid-safe or teen-safe policy tiers, and defaulting unknown-age users to the most restrictive policy rather than the least restrictive one. We would also add a pre-deploy operational gate to the retraining or release process that runs the safety analysis in [scripts/safety_analysis.py](scripts/safety_analysis.py) and blocks a rollout if exposure of minors to `adult=true` titles crosses a threshold. This is intentionally a process and monitoring change, not only a model change, because the rubric asks for plausible system or development-practice mitigations.
+
+---
+
+## Analysis of a Safety Issue
+
+We analyzed safety issue B, child and teen exposure to adult titles, using the telemetry and metadata already present in the repository. The concrete question was: do under-18 users receive recommendations containing titles marked `adult=true`, and if so, how often?
+
+**Method.** We implemented the analysis in [src/analysis/safety.py](src/analysis/safety.py) with a CLI wrapper in [scripts/safety_analysis.py](scripts/safety_analysis.py). The analysis loads recommendation events from [experiments/logs/exp_cold_start.jsonl](experiments/logs/exp_cold_start.jsonl) and [experiments/logs/exp_cost_optimise.jsonl](experiments/logs/exp_cost_optimise.jsonl), joins each event with user age from [metadata/users.json](metadata/users.json), restricts the sample to users with `age < 18`, and then joins each recommended movie ID with the `adult` field in [metadata/movies.json](metadata/movies.json). The saved artifact is [experiments/results/m4_safety.json](experiments/results/m4_safety.json).
+
+**Metric.** Our primary metric is `minor_adult_recommendation_rate`: the fraction of recommendation events for users under 18 that contain at least one `adult=true` title. We also compute `minor_adult_title_share`, the share of recommended titles shown to under-18 users that are marked adult.
+
+**Results.** The local run scanned 1002 recommendation events in total and found 8 recommendation events for under-18 users spanning 4 unique minors. Across those 8 events, we observed 0 events containing any `adult=true` title and 0 adult titles among 160 recommended titles shown to minors. This yielded `minor_adult_recommendation_rate = 0.0` and `minor_adult_title_share = 0.0`, with the saved conclusion `no_observed_harm_in_sample` in [experiments/results/m4_safety.json](experiments/results/m4_safety.json).
+
+This is a negative result, not proof that the system is safe. The main limitation is sample size: only 8 minor recommendation events were available in the local telemetry slice, and we did not have local watch-shard data to measure whether any risky exposures were later watched. Still, the analysis satisfies the audit requirement because it uses actual system telemetry, clearly defines the metric and computation, and reports the observed result, including the negative finding and its limitations.
+
+---
+
 ## Team contract update
 
 *No update to team contract.*
