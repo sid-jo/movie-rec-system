@@ -285,6 +285,8 @@ This is a negative result, not proof that the system is safe. The main limitatio
 
 ---
 
-## Team contract update
+### Team contract update
 
-*No update to team contract.*
+None
+
+### Team Agenda: [LINK](https://docs.google.com/document/d/15L1J9VfE_tyWO4EEJzRrANSiMwOtWNiULlgsL0cdn_g/edit?usp=sharing)
